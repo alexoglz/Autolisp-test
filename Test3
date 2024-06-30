@@ -1,0 +1,70 @@
+(vl-load-com)
+
+(defun c:ajustarRowHeight ( / itemNumber maxHeight tables table rowCount colCount i row currentHeight)
+  ;; Pedir al usuario que introduzca el número de ítem
+  (setq itemNumber (getstring "\nIntroduce el número de ítem a ajustar: "))
+
+  ;; Inicializar la altura máxima
+  (setq maxHeight 0)
+
+  ;; Obtener todas las entidades en el dibujo
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+
+  ;; Recorrer todas las entidades y filtrar las tablas
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+        (print (strcat "Procesando tabla con " (itoa rowCount) " filas y " (itoa colCount) " columnas."))
+
+        ;; Recorrer todas las filas para encontrar la altura máxima de la fila con el número de ítem especificado
+        (setq i 0)
+        (while (< i rowCount)
+          (if (= (vla-getText table i 0) itemNumber)
+            (progn
+              (setq currentHeight (vla-getRowHeight table i))
+              (print (strcat "Fila " (itoa i) " con ítem " itemNumber " tiene altura " (rtos currentHeight 2 4)))
+              (if (> currentHeight maxHeight)
+                (setq maxHeight currentHeight)
+              )
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (print (strcat "Altura máxima encontrada: " (rtos maxHeight 2 4)))
+
+  ;; Ajustar las alturas de las filas
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+
+        ;; Recorrer todas las filas para ajustar la altura
+        (setq i 0)
+        (while (< i rowCount)
+          (if (= (vla-getText table i 0) itemNumber)
+            (progn
+              (vla-setRowHeight table i maxHeight)
+              (print (strcat "Ajustando altura de fila " (itoa i) " en tabla."))
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (princ "\nAlturas de las filas ajustadas.")
+  (princ)
+)
+
+(princ "\nType ajustarRowHeight to adjust the row heights for a specified item number.\n")
+(princ)
