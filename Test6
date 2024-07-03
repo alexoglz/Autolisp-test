@@ -1,0 +1,59 @@
+(vl-load-com)
+
+(defun c:ajustarRowHeight (/ itemNumber maxHeight tables table rowCount colCount i)
+  (setq itemNumber (getstring "\nEnter the item number to adjust row heights: "))
+
+  (setq maxHeight 0)
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+
+  (vlax-for ent tables
+    (if (eq (vla-get-objectname ent) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+        
+        (print (strcat "\nProcessing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+        
+        (setq i 0)
+        (while (< i rowCount)
+          (if (= (vla-gettext table i 0) itemNumber)
+            (progn
+              (setq maxHeight (vla-getrowheight table i))
+              (print (strcat "Row " (itoa i) ": Item number = " itemNumber ", Height = " (rtos maxHeight 2 4)))
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (print (strcat "\nMax height found: " (rtos maxHeight 2 4)))
+
+  (vlax-for ent tables
+    (if (eq (vla-get-objectname ent) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        
+        (setq i 0)
+        (while (< i rowCount)
+          (if (= (vla-gettext table i 0) itemNumber)
+            (progn
+              (vla-putrowheight table i maxHeight)
+              (print (strcat "Adjusted height of row " (itoa i) " in table."))
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (princ "\nRow heights adjusted.")
+  (princ)
+)
+
+(princ "\nType ajustarRowHeight to adjust the row heights for a specified item number.\n")
+(princ)
