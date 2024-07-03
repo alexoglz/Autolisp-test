@@ -1,0 +1,44 @@
+(defun c:UpdateRowHeights (/ itemNumber maxHeight allTables)
+  (vl-load-com)
+  
+  ;; Function to get the maximum row height for a specific item number
+  (defun getMaxHeight (tables itemNumber / maxHeight)
+    (setq maxHeight 0)
+    (foreach table tables
+      (vlax-for row (vla-get-Rows table)
+        (if (and (= (vla-GetText table row 0) itemNumber)
+                 (> (vla-GetRowHeight table row) maxHeight))
+          (setq maxHeight (vla-GetRowHeight table row))
+        )
+      )
+    )
+    maxHeight
+  )
+
+  ;; Function to set the row height for a specific item number
+  (defun setRowHeight (tables itemNumber height)
+    (foreach table tables
+      (vlax-for row (vla-get-Rows table)
+        (if (= (vla-GetText table row 0) itemNumber)
+          (vla-SetRowHeight table row height)
+        )
+      )
+    )
+  )
+
+  ;; Get item number from user
+  (setq itemNumber (getstring "\nEnter item number to adjust row heights: "))
+  
+  ;; Collect all table objects in the drawing
+  (setq allTables (vla-get-Blocks (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (setq allTables (vlax-safearray->list (vlax-variant-value (vla-GetObjects allTables '("AcDbTable")))))
+
+  ;; Get the maximum row height for the given item number
+  (setq maxHeight (getMaxHeight allTables itemNumber))
+  
+  ;; Set all rows with the given item number to the maximum height
+  (setRowHeight allTables itemNumber maxHeight)
+  
+  (princ "\nRow heights updated.")
+  (princ)
+)
