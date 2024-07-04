@@ -1,0 +1,84 @@
+(vl-load-com)
+
+(defun strtrim (str)
+  ;; Custom function to trim leading and trailing spaces
+  (if (not str) ""
+    (vl-string-trim " " str)
+  )
+)
+
+(defun c:adjustRowHeight ( / itemNumber maxHeight tables table rowCount colCount i row currentHeight cellContent)
+  ;; Prompt the user to enter the item number
+  (setq itemNumber (strcase (strtrim (getstring "\nEnter the item number to adjust: "))))
+  (print (strcat "\nItem number entered: " itemNumber))
+
+  ;; Initialize the maximum height
+  (setq maxHeight 0)
+
+  ;; Get all entities in the drawing
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (print "\nRetrieved all entities in the drawing.")
+
+  ;; Iterate over all entities and filter the tables
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+        (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+
+        ;; Iterate over all rows to find the maximum height of the row with the specified item number
+        (setq i 0)
+        (while (< i rowCount)
+          ;; Use vla-GetTextString with the 2 flag to get plain text content
+          (setq cellContent (strcase (strtrim (vla-GetTextString table i 0 2))))
+          (print (strcat "Checking row " (itoa i) " for item number. Cell content: " cellContent))
+          (if (= cellContent itemNumber)
+            (progn
+              (setq currentHeight (vla-getRowHeight table i))
+              (print (strcat "Row " (itoa i) " with item " itemNumber " has height " (rtos currentHeight 2 4)))
+              (if (> currentHeight maxHeight)
+                (setq maxHeight currentHeight)
+              )
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (print (strcat "Maximum height found: " (rtos maxHeight 2 4)))
+
+  ;; Adjust the row heights
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+
+        ;; Iterate over all rows to adjust the height
+        (setq i 0)
+        (while (< i rowCount)
+          ;; Use vla-GetTextString with the 2 flag to get plain text content
+          (setq cellContent (strcase (strtrim (vla-GetTextString table i 0 2))))
+          (if (= cellContent itemNumber)
+            (progn
+              (vla-setRowHeight table i maxHeight)
+              (print (strcat "Adjusting height of row " (itoa i) " in table."))
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  (princ "\nRow heights adjusted.")
+  (princ)
+)
+
+(princ "\nType adjustRowHeight to adjust the row heights for a specified item number.\n")
+(princ)
