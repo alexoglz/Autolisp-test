@@ -1,13 +1,14 @@
-Simplified Explanation:
-Start: Begin the process.
-Define c:adjustRowHeight Function: Define the main function to adjust row heights.
-Prompt User for Item Number: Ask the user to enter the item number to adjust.
-Get All Tables in the Drawing: Retrieve all tables in the drawing.
-For Each Table and Row: Iterate over each table and each row in the table.
-If First Column Text Matches Item Number: Check if the text in the first column matches the item number.
-Get Row Height: If it matches, get the height of the row.
-If Row Height > maxHeight: If the row height is greater than the current maximum height, update the maximum height.
-For Each Table and Row Again: Iterate over each table and each row again to adjust the row heights.
-If First Column Text Matches Item Number: Check if the text in the first column matches the item number.
-Set Row Height to maxHeight: If it matches, set the row height to the maximum height found.
-End: End the process.
+User types adjustRowHeight command: The user initiates the command by typing adjustRowHeight in the AutoCAD command line.
+
+Prompt user to enter the item number: The code prompts the user to enter the item number for the rows they want to adjust. The user types in the item number.
+
+Code retrieves all tables and iterates over each row:
+
+The code checks if the text in the first column of the row matches the item number entered by the user.
+If a match is found, the code retrieves the height of that row.
+The code keeps track of the maximum row height encountered during this process.
+Code iterates over each row again:
+
+The code checks again if the text in the first column matches the item number.
+If a match is found, the code sets the row height to the maximum height found in the previous step.
+End: The process completes, and all rows with the matching item number now have a consistent height, adjusted to the maximum row height found.
