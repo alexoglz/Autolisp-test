@@ -1,0 +1,13 @@
+Simplified Explanation:
+Start: Begin the process.
+Define c:adjustRowHeight Function: Define the main function to adjust row heights.
+Prompt User for Item Number: Ask the user to enter the item number to adjust.
+Get All Tables in the Drawing: Retrieve all tables in the drawing.
+For Each Table and Row: Iterate over each table and each row in the table.
+If First Column Text Matches Item Number: Check if the text in the first column matches the item number.
+Get Row Height: If it matches, get the height of the row.
+If Row Height > maxHeight: If the row height is greater than the current maximum height, update the maximum height.
+For Each Table and Row Again: Iterate over each table and each row again to adjust the row heights.
+If First Column Text Matches Item Number: Check if the text in the first column matches the item number.
+Set Row Height to maxHeight: If it matches, set the row height to the maximum height found.
+End: End the process.
