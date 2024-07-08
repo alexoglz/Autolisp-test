@@ -13,16 +13,16 @@
   minItem)
 
 (defun get-tables-with-min-item (tables)
-  "Get all tables that have the minimum item number"
+  "Get all tables that have the minimum item number in the first row"
   (setq minItem "999999")
   (foreach table tables
-    (setq itemNumber (get-min-item-number table))
+    (setq itemNumber (strcase (vla-getText table 0 0))) ; Check only the first row
     (if (< (atoi itemNumber) (atoi minItem))
       (setq minItem itemNumber)))
 
   (setq minTables '())
   (foreach table tables
-    (if (= (atoi (get-min-item-number table)) (atoi minItem))
+    (if (= (atoi (strcase (vla-getText table 0 0))) (atoi minItem)) ; Check only the first row
       (setq minTables (append minTables (list table)))))
   minTables)
 
@@ -51,4 +51,5 @@
 
 (princ "\nType 'placeMinItemTables' to place tables with the minimum item number at the specified coordinate.\n")
 (princ)
+
 
