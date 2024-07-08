@@ -12,3 +12,5 @@ Code iterates over each row again:
 The code checks again if the text in the first column matches the item number.
 If a match is found, the code sets the row height to the maximum height found in the previous step.
 End: The process completes, and all rows with the matching item number now have a consistent height, adjusted to the maximum row height found.
+
+www.linkedin.com/in/alejandro-gonzález-suárez-ba0095200
