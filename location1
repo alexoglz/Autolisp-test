@@ -1,0 +1,77 @@
+(vl-load-com)
+
+(defun get-min-item-number (table)
+  "Get the minimum item number from the first column of a table"
+  (setq rowCount (vla-get-Rows table))
+  (setq minItem (strcase (strtrim (vla-getText table 0 0))))
+  (setq i 1)
+  (while (< i rowCount)
+    (setq itemNumber (strcase (strtrim (vla-getText table i 0))))
+    (if (< (atoi itemNumber) (atoi minItem))
+      (setq minItem itemNumber))
+    (setq i (1+ i)))
+  minItem)
+
+(defun sort-tables-by-min-item (tables)
+  "Sort tables by their minimum item number"
+  (vl-sort tables
+    '(lambda (t1 t2)
+       (< (atoi (get-min-item-number t1)) (atoi (get-min-item-number t2))))))
+
+(defun get-row-coordinates (table row)
+  "Get the coordinates of a specific row in a table"
+  (vlax-get (vla-getCellExtents table row 0 0) 'Point))
+
+(defun place-tables (tables start-point limit-point)
+  "Place tables according to their item numbers and limits"
+  (setq current-point start-point)
+  (setq next-section-start-point (list (+ (car start-point) (- (car limit-point) (car start-point))) (cadr start-point)))
+
+  (foreach table tables
+    (setq minItem (atoi (get-min-item-number table)))
+    (setq tableHeight 0)
+    (setq placed nil)
+
+    (vlax-for t tables
+      (if (not (eq t table))
+        (progn
+          (setq rowCount (vla-get-Rows t))
+          (setq i 0)
+          (while (and (< i rowCount) (not placed))
+            (if (= (atoi (strcase (strtrim (vla-getText t i 0)))) minItem)
+              (progn
+                (setq cellCoords (get-row-coordinates t i))
+                (vla-put-InsertionPoint table cellCoords)
+                (setq placed t)))
+            (setq i (1+ i)))))
+
+    (if (not placed)
+      (progn
+        (vla-put-Location table current-point)
+        (setq tableHeight (vla-getHeight table))
+        (if (> (+ (cadr current-point) tableHeight) (cadr limit-point))
+          (setq current-point next-section-start-point)
+          (setq current-point (list (car current-point) (+ (cadr current-point) tableHeight))))))))
+
+(defun C:organizeTables ()
+  ;; Coordenada inicial, edita aquí según sea necesario
+  (setq start-point (list 10.0 10.0))
+  ;; Límite de la hoja, edita aquí según sea necesario
+  (setq limit-point (list 200.0 300.0))
+
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (setq tables '())
+  
+  ;; Obtener todas las entidades en el dibujo
+  (setq modelSpace (vla-get-ModelSpace doc))
+  (vlax-for ent modelSpace
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (setq tables (append tables (list ent)))))
+  
+  (setq sortedTables (sort-tables-by-min-item tables))
+  (place-tables sortedTables start-point limit-point)
+  (princ "\nTables organized.")
+  (princ))
+
+(princ "\nType 'organizeTables' to organize the tables by item number.\n")
+(princ)
