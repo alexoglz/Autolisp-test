@@ -42,6 +42,12 @@
     (setq i (1+ i)))
   cellCoords)
 
+(defun place-tables-at-coordinate (tables coordinate)
+  "Place all tables at the specified coordinate"
+  (foreach table tables
+    (vla-put-InsertionPoint table coordinate)
+    (print (strcat "\nPlaced table at coordinate: " (vl-princ-to-string coordinate)))))
+
 (defun place-tables (tables start-point)
   "Place tables according to their item numbers"
   ;; Place tables with the minimum item number first
@@ -64,35 +70,3 @@
       (setq i 0)
       (while (and (< i rowCount) (not coord-found))
         (if (= (atoi (strcase (vla-getText table i 0))) (atoi nextMinItem))
-          (progn
-            (setq new-coord (vlax-get (vla-getCellExtents table i 0 0) 'Point))
-            (setq coord-found t)))
-        (setq i (1+ i))))
-
-    (place-tables-at-coordinate nextMinTables new-coord)
-
-    ;; Update lists
-    (setq minItemTables nextMinTables)
-    (setq remainingTables (vl-remove-if '(lambda (t) (member t nextMinTables)) remainingTables)))
-)
-
-(defun C:placeMinItemTables ()
-  ;; Coordenada inicial, edita aquí según sea necesario
-  (setq target-coordinate (vlax-3D-point '(10.0 10.0 0.0)))
-
-  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
-  (setq tables '())
-  
-  ;; Obtener todas las entidades en el dibujo
-  (setq modelSpace (vla-get-ModelSpace doc))
-  (vlax-for ent modelSpace
-    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
-      (setq tables (append tables (list ent)))))
-  
-  ;; Ordenar y colocar las tablas
-  (place-tables tables target-coordinate)
-  (princ "\nTables with the minimum item number have been placed.")
-  (princ))
-
-(princ "\nType 'placeMinItemTables' to place tables with the minimum item number at the specified coordinate.\n")
-(princ)
