@@ -3,10 +3,10 @@
 (defun get-min-item-number (table)
   "Get the minimum item number from the first column of a table"
   (setq rowCount (vla-get-Rows table))
-  (setq minItem (strcase (strtrim (vla-getText table 0 0))))
+  (setq minItem (strcase (vla-getText table 0 0)))
   (setq i 1)
   (while (< i rowCount)
-    (setq itemNumber (strcase (strtrim (vla-getText table i 0))))
+    (setq itemNumber (strcase (vla-getText table i 0)))
     (if (< (atoi itemNumber) (atoi minItem))
       (setq minItem itemNumber))
     (setq i (1+ i)))
@@ -51,3 +51,4 @@
 
 (princ "\nType 'placeMinItemTables' to place tables with the minimum item number at the specified coordinate.\n")
 (princ)
+
