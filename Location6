@@ -58,7 +58,7 @@
   (if (not doc)
     (progn
       (princ "\nError: Unable to retrieve ActiveDocument.")  ; Print an error message if ActiveDocument is nil
-      (return)))  ; Exit function if ActiveDocument is nil
+      (exit)))  ; Exit function if ActiveDocument is nil
 
   (princ "\nActive document obtained")  ; Print a message indicating the active document was obtained
   (setq tables '())  ; Initialize an empty list to store tables
@@ -80,7 +80,7 @@
     (if (null minItemTables)
       (progn
         (princ "\nError: No tables found with the current minimum item number.")
-        (return)))  ; Exit the loop if no tables found
+        (exit)))  ; Exit the loop if no tables found
 
     (place-tables-at-coordinate minItemTables target-coordinate)  ; Place the tables at the target coordinate
     (setq rowHeight (get-rowheight (car minItemTables) 0))  ; Get the row height of the first row of the table
