@@ -76,6 +76,12 @@
     (princ (strcat "\nCurrent min item: " minItem))  ; Print the current minimum item number
     (setq minItemTables (get-tables-with-min-item tables minItem))  ; Get tables with the minimum item number
     (princ "\nTables with the minimum item number obtained")  ; Print a message indicating the tables were obtained
+
+    (if (null minItemTables)
+      (progn
+        (princ "\nError: No tables found with the current minimum item number.")
+        (return)))  ; Exit the loop if no tables found
+
     (place-tables-at-coordinate minItemTables target-coordinate)  ; Place the tables at the target coordinate
     (setq rowHeight (get-rowheight (car minItemTables) 0))  ; Get the row height of the first row of the table
     (setq target-coordinate (vlax-3D-point (list (car target-coordinate) (- (cadr target-coordinate) rowHeight) 0.0)))  ; Update the target coordinate
