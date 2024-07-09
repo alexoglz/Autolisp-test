@@ -1,0 +1,53 @@
+(vl-load-com)  ; Load Visual LISP COM library
+
+(defun get-min-item-number (table)
+  "Get the minimum item number from the first column of a table"
+  (setq rowCount (vla-get-Rows table))  ; Get the number of rows in the table
+  (setq minItem (strcase (vla-getText table 0 0)))  ; Get the text from the first cell and convert it to uppercase
+  (setq i 1)  ; Initialize the row counter
+  (while (< i rowCount)  ; Loop through each row in the table
+    (setq itemNumber (strcase (vla-getText table i 0)))  ; Get the text from the first column of the current row
+    (if (< (atoi itemNumber) (atoi minItem))  ; Check if the current item number is smaller than minItem
+      (setq minItem itemNumber))  ; Update minItem if the current item number is smaller
+    (setq i (1+ i)))  ; Increment the row counter
+  minItem)  ; Return the minimum item number
+
+(defun get-tables-with-min-item (tables)
+  "Get all tables that have the minimum item number in the first row"
+  (setq minItem "999999")  ; Initialize minItem with a large value
+  (foreach table tables  ; Loop through each table
+    (setq itemNumber (strcase (vla-getText table 0 0)))  ; Get the text from the first cell of the table
+    (if (< (atoi itemNumber) (atoi minItem))  ; Check if the current item number is smaller than minItem
+      (setq minItem itemNumber)))  ; Update minItem if the current item number is smaller
+
+  (setq minTables '())  ; Initialize an empty list to store tables with the minimum item number
+  (foreach table tables  ; Loop through each table again
+    (if (= (atoi (strcase (vla-getText table 0 0))) (atoi minItem))  ; Check if the first cell's item number matches minItem
+      (setq minTables (append minTables (list table)))))  ; Add the table to minTables if it matches
+  minTables)  ; Return the list of tables with the minimum item number
+
+(defun place-tables-at-coordinate (tables coordinate)
+  "Place all tables at the specified coordinate"
+  (foreach table tables  ; Loop through each table
+    (vla-put-InsertionPoint table coordinate)))  ; Set the insertion point of each table to the specified coordinate
+
+(defun C:placeMinItemTables ()
+  ;; Initial coordinate, edit here as necessary
+  (setq target-coordinate (vlax-3D-point '(10.0 10.0 0.0)))  ; Define the target coordinate
+
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))  ; Get the active document
+  (setq tables '())  ; Initialize an empty list to store tables
+  
+  ;; Get all entities in the drawing
+  (setq modelSpace (vla-get-ModelSpace doc))  ; Get the model space of the drawing
+  (vlax-for ent modelSpace  ; Loop through each entity in the model space
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")  ; Check if the entity is a table
+      (setq tables (append tables (list ent)))))  ; Add the table to the list
+  
+  (setq minItemTables (get-tables-with-min-item tables))  ; Get tables with the minimum item number
+  (place-tables-at-coordinate minItemTables target-coordinate)  ; Place the tables at the target coordinate
+  (princ "\nTables with the minimum item number have been placed.")  ; Print a message to the command line
+  (princ))  ; End the function
+
+(princ "\nType 'placeMinItemTables' to place tables with the minimum item number at the specified coordinate.\n")  ; Print instructions
+(princ)  ; End the script
