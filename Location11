@@ -76,7 +76,7 @@
     (setq table (cadr itemData))
     (setq rowHeight (caddr itemData))
     (if (assoc itemNumber itemGroups)
-      (setq itemGroups (subst (cons (list itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups)) itemGroups))
+      (setq itemGroups (subst (cons itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups) itemGroups))
       (setq itemGroups (cons (cons itemNumber (list (list table rowHeight))) itemGroups))
     )
   )
@@ -84,7 +84,7 @@
   ;; Place tables based on grouped item numbers
   (setq coord (list 1.5290 yOffset 0))
   (foreach group (vl-sort itemGroups '(lambda (a b) (< (caar a) (caar b)))))
-    (foreach tableData (cdr group)
+    (foreach tableData (cdr (cdr group))
       (setq table (car tableData))
       (vla-put-InsertionPoint table (vlax-3d-point coord))
     )
