@@ -44,7 +44,7 @@
   ;; Initialize variables
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
   (setq itemNumbers '())
-  (setq itemGroups (make-sparse-array))
+  (setq itemGroups '())
   (setq yOffset 20.3848)
 
   ;; Iterate over all entities to collect item numbers and their corresponding row heights
@@ -61,7 +61,7 @@
         (setq itemNumber (atoi unformattedContent))
         (setq rowHeight (vla-getRowHeight table 0))
 
-        ;; Store the item number and row height
+        ;; Store the item number, table object, and row height
         (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
       )
     )
@@ -83,7 +83,7 @@
 
   ;; Place tables based on grouped item numbers
   (setq coord (list 1.5290 yOffset 0))
-  (foreach group (vl-sort itemGroups '(lambda (a b) (< (car a) (car b))))
+  (foreach group (vl-sort itemGroups '(lambda (a b) (< (caar a) (caar b)))))
     (foreach tableData (cdr group)
       (setq table (car tableData))
       (vla-put-InsertionPoint table (vlax-3d-point coord))
