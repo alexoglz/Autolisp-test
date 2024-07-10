@@ -76,7 +76,7 @@
     (setq table (cadr itemData))
     (setq rowHeight (caddr itemData))
     (if (assoc itemNumber itemGroups)
-      (setq itemGroups (subst (cons itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups) itemGroups))
+      (setq itemGroups (subst (cons (list itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups)) itemGroups))
       (setq itemGroups (cons (cons itemNumber (list (list table rowHeight))) itemGroups))
     )
   )
@@ -88,7 +88,7 @@
       (setq table (car tableData))
       (vla-put-InsertionPoint table (vlax-3d-point coord))
     )
-    (setq yOffset (- yOffset (cadar (cdr group))))
+    (setq yOffset (- yOffset (cadar group)))
     (setq coord (list 1.5290 yOffset 0))
   )
 
