@@ -40,6 +40,15 @@
   )
 )
 
+;; SetObjectName function by Lee Mac
+;; Ensure this function is defined or included in your script
+;; Example function for setting object names in AutoCAD
+(defun SetObjectName ( ent name / obj )
+  (if (setq obj (vlax-ename->vla-object ent))
+    (vla-put-ObjectName obj name)
+  )
+)
+
 ;; Command function to organize and place tables
 (defun c:organizeTables ( / tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
   (print "\nStarting to organize and place tables...")
@@ -68,8 +77,8 @@
         (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
         (setq endItemNumber (atoi unformattedContent))
 
-        ;; Set the table name based on starting and ending item numbers
-        (vla-put-ObjectName table (strcat "Table " (itoa startItemNumber) "-" (itoa endItemNumber)))
+        ;; Set the table name based on starting and ending item numbers using SetObjectName
+        (SetObjectName table (strcat "Table " (itoa startItemNumber) "-" (itoa endItemNumber)))
 
         ;; Store the item numbers, table entity, and row height
         (setq itemNumbers (cons (list startItemNumber endItemNumber table rowHeight) itemNumbers))
