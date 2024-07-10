@@ -40,17 +40,8 @@
   )
 )
 
-;; SetObjectName function by Lee Mac
-;; Ensure this function is defined or included in your script
-;; Example function for setting object names in AutoCAD
-(defun SetObjectName (ent name / obj)
-  (if (setq obj (vlax-ename->vla-object ent))
-    (vla-put-ObjectName obj name)
-  )
-)
-
 ;; Command function to organize and place tables
-(defun c:organizeTables (/ tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
+(defun c:organizeTables ( / tables tableGroups tableGroup itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
   (print "\nStarting to organize and place tables...")
 
   ;; Initialize variables
@@ -61,7 +52,7 @@
   ;; Iterate over all entities to collect item numbers and their corresponding row heights
   (print "Iterating over tables to collect item numbers and row heights...")
   (vlax-for ent tables
-    (if (eq (vla-get-objectname ent) "AcDbTable")  ; Check if entity is a table
+    (if (eq (vla-get-objectname ent) "AcDbTable")
       (progn
         (setq table ent)
         (setq rowCount (vla-get-Rows table))
@@ -70,42 +61,44 @@
         ;; Get the item number and row height of the first row in each table
         (setq cellContent (vla-getText table 0 0))
         (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
-        (setq startItemNumber (atoi unformattedContent))
+        (setq itemNumber (atoi unformattedContent))
+        (setq rowHeight (vla-getRowHeight table 0))
 
-        ;; Get the item number of the last row in each table
-        (setq cellContent (vla-getText table (1- rowCount) 0))
-        (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
-        (setq endItemNumber (atoi unformattedContent))
-
-        ;; Set the table name based on starting and ending item numbers using SetObjectName
-        (SetObjectName table (strcat "Table " (itoa startItemNumber) "-" (itoa endItemNumber)))
-
-        ;; Store the item numbers, table entity, and row height
-        (setq itemNumbers (cons (list startItemNumber endItemNumber table rowHeight) itemNumbers))
-        (print (strcat "Table named: Table " (itoa startItemNumber) "-" (itoa endItemNumber)))
+        ;; Store the item number, table entity, and row height
+        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
+        (print (strcat "Table found with item number " (rtos itemNumber) " and row height " (rtos rowHeight)))
       )
     )
   )
 
-  ;; Sort item numbers by starting item number
+  ;; Sort item numbers by item number
   (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
   (print "Item numbers sorted.")
 
-  ;; Place tables based on sorted item numbers
-  (setq coord (list 1.5290 yOffset 0))
-  (print "Placing tables based on sorted item numbers...")
+  ;; Group tables by item number
+  (setq tableGroups '())
   (foreach itemData sortedItemNumbers
-    (setq startItemNumber (car itemData))
-    (setq endItemNumber (cadr itemData))
-    (setq table (caddr itemData))
-    (setq rowHeight (cadddr itemData))
-    (vla-put-InsertionPoint table (vlax-3d-point coord))
-    (print (strcat "Table placed at coordinate " (rtos (car coord) 2 4) ", " (rtos (cadr coord) 2 4) ", " (rtos (caddr coord) 2 4)))
-    (print (strcat "Table name: Table " (itoa startItemNumber) "-" (itoa endItemNumber)))
-    (print (strcat "Row height of this table: " (rtos rowHeight 2 4)))
-    (setq yOffset (- yOffset rowHeight))
-    (print (strcat "New Y offset: " (rtos yOffset 2 4)))
-    (setq coord (list 1.5290 yOffset 0))
+    (setq itemNumber (car itemData))
+    (setq table (cadr itemData))
+    (setq rowHeight (caddr itemData))
+    (setq tableGroup (assoc itemNumber tableGroups))
+    (if (null tableGroup)
+      (setq tableGroups (cons (cons itemNumber (list table rowHeight)) tableGroups))
+      (setq tableGroups (subst (cons itemNumber (cons table rowHeight (cdr tableGroup))) tableGroup tableGroups))
+    )
+  )
+
+  ;; Place tables based on grouped item numbers
+  (print "Placing tables based on grouped item numbers...")
+  (setq coord (list 1.5290 yOffset 0))
+  (foreach tableGroup tableGroups
+    (setq tables (cdr tableGroup))
+    (foreach table tables
+      (vla-put-InsertionPoint table (vlax-3d-point coord))
+      (print (strcat "Table placed at coordinate " (rtos (car coord)) ", " (rtos (cadr coord)) ", " (rtos (caddr coord))))
+      (setq yOffset (- yOffset (cadr tableGroup)))
+      (setq coord (list 1.5290 yOffset 0))
+    )
   )
 
   (princ "\nTables organized and placed.")
