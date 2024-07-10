@@ -74,7 +74,7 @@
   (foreach itemData sortedItemNumbers
     (setq table (cadr itemData))
     (setq rowHeight (caddr itemData))
-    (vla-put-Coordinates table (vlax-3d-point coord))
+    (vla-put-InsertionPoint table (vlax-3d-point coord))
     (setq yOffset (- yOffset rowHeight))
     (setq coord (list 1.5290 yOffset 0))
   )
