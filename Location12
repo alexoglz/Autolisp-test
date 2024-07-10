@@ -43,14 +43,14 @@
 ;; SetObjectName function by Lee Mac
 ;; Ensure this function is defined or included in your script
 ;; Example function for setting object names in AutoCAD
-(defun SetObjectName ( ent name / obj )
+(defun SetObjectName (ent name / obj)
   (if (setq obj (vlax-ename->vla-object ent))
     (vla-put-ObjectName obj name)
   )
 )
 
 ;; Command function to organize and place tables
-(defun c:organizeTables ( / tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
+(defun c:organizeTables (/ tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
   (print "\nStarting to organize and place tables...")
 
   ;; Initialize variables
@@ -61,7 +61,7 @@
   ;; Iterate over all entities to collect item numbers and their corresponding row heights
   (print "Iterating over tables to collect item numbers and row heights...")
   (vlax-for ent tables
-    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+    (if (eq (vla-get-objectname ent) "AcDbTable")  ; Check if entity is a table
       (progn
         (setq table ent)
         (setq rowCount (vla-get-Rows table))
