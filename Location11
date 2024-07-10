@@ -84,12 +84,12 @@
   ;; Place tables based on grouped item numbers
   (setq coord (list 1.5290 yOffset 0))
   (foreach group (vl-sort itemGroups '(lambda (a b) (< (caar a) (caar b)))))
-    (foreach tableData (cdr (cdr group))
-      (setq table (car tableData))
+    (setq yOffset (- yOffset (cadar group))) ; Adjust yOffset before placing tables
+    (foreach tableData (cdr (assoc (caar group) itemGroups)) ; Iterate through tables in current group
+      (setq table (caar tableData)) ; Extract table from tableData
       (vla-put-InsertionPoint table (vlax-3d-point coord))
     )
-    (setq yOffset (- yOffset (cadar group)))
-    (setq coord (list 1.5290 yOffset 0))
+    (setq coord (list 1.5290 yOffset 0)) ; Update coord for next group of tables
   )
 
   (princ "\nTables organized and placed.")
