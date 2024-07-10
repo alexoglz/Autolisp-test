@@ -83,8 +83,8 @@
     (setq rowHeight (caddr itemData))
     (setq tableGroup (assoc itemNumber tableGroups))
     (if (null tableGroup)
-      (setq tableGroups (cons (cons itemNumber (list table rowHeight)) tableGroups))
-      (setq tableGroups (subst (cons itemNumber (cons table rowHeight (cdr tableGroup))) tableGroup tableGroups))
+      (setq tableGroups (cons (cons itemNumber (list (list table rowHeight))) tableGroups))
+      (setq tableGroups (subst (cons itemNumber (cons (append (cdr tableGroup) (list (list table rowHeight))) (cdr tableGroup))) tableGroup tableGroups))
     )
   )
 
@@ -93,10 +93,12 @@
   (setq coord (list 1.5290 yOffset 0))
   (foreach tableGroup tableGroups
     (setq tables (cdr tableGroup))
-    (foreach table tables
+    (foreach tableInfo tables
+      (setq table (car tableInfo))
+      (setq rowHeight (cadr tableInfo))
       (vla-put-InsertionPoint table (vlax-3d-point coord))
       (print (strcat "Table placed at coordinate " (rtos (car coord)) ", " (rtos (cadr coord)) ", " (rtos (caddr coord))))
-      (setq yOffset (- yOffset (cadr tableGroup)))
+      (setq yOffset (- yOffset rowHeight))
       (setq coord (list 1.5290 yOffset 0))
     )
   )
