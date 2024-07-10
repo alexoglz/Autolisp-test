@@ -40,56 +40,47 @@
   )
 )
 
-(defun c:organizeTables ( / tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord itemGroups)
+(defun c:organizeTables (/ tables itemGroups coord yOffset)
   ;; Initialize variables
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
-  (setq itemNumbers '())
   (setq itemGroups '())
   (setq yOffset 20.3848)
 
-  ;; Iterate over all entities to collect item numbers and their corresponding row heights
+  ;; Iterate over all tables to collect item numbers and their corresponding row heights
   (vlax-for ent tables
-    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+    (if (eq (vla-get-ObjectName ent) "AcDbTable")
       (progn
-        (setq table ent)
-        (setq rowCount (vla-get-Rows table))
-        (setq colCount (vla-get-Columns table))
+        (setq rowCount (vla-get-Rows ent))
+        (setq colCount (vla-get-Columns ent))
 
         ;; Get the item number and row height of the first row in each table
-        (setq cellContent (vla-getText table 0 0))
+        (setq cellContent (vla-getText ent 0 0))
         (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
         (setq itemNumber (atoi unformattedContent))
-        (setq rowHeight (vla-getRowHeight table 0))
+        (setq rowHeight (vla-getRowHeight ent 0))
 
-        ;; Store the item number, table object, and row height
-        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
+        ;; Group tables by item number
+        (if (assoc itemNumber itemGroups)
+          (setq itemGroups (subst (cons itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (cons ent rowHeight)))) (assoc itemNumber itemGroups) itemGroups))
+          (setq itemGroups (cons (cons itemNumber (list (cons ent rowHeight)))) itemGroups)
+        )
       )
     )
   )
 
-  ;; Sort item numbers
-  (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
-
-  ;; Group tables by item number
-  (foreach itemData sortedItemNumbers
-    (setq itemNumber (car itemData))
-    (setq table (cadr itemData))
-    (setq rowHeight (caddr itemData))
-    (if (assoc itemNumber itemGroups)
-      (setq itemGroups (subst (cons itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups) itemGroups))
-      (setq itemGroups (cons (cons itemNumber (list (list table rowHeight))) itemGroups))
-    )
-  )
+  ;; Sort item groups by item number
+  (setq sortedItemGroups (vl-sort itemGroups (function (lambda (a b) (< (caar a) (caar b))))))
 
   ;; Place tables based on grouped item numbers
   (setq coord (list 1.5290 yOffset 0))
-  (foreach group (vl-sort itemGroups '(lambda (a b) (< (caar a) (caar b)))))
-    (setq yOffset (- yOffset (cadar group))) ; Adjust yOffset before placing tables
-    (foreach tableData (cdr (assoc (caar group) itemGroups)) ; Iterate through tables in current group
-      (setq table (caar tableData)) ; Extract table from tableData
+  (foreach group sortedItemGroups
+    (foreach tableData (cdr group)
+      (setq table (caar tableData))
+      (setq rowHeight (cdar tableData))
       (vla-put-InsertionPoint table (vlax-3d-point coord))
     )
-    (setq coord (list 1.5290 yOffset 0)) ; Update coord for next group of tables
+    (setq yOffset (- yOffset rowHeight))
+    (setq coord (list 1.5290 yOffset 0))
   )
 
   (princ "\nTables organized and placed.")
