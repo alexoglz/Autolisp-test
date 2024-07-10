@@ -1,0 +1,100 @@
+(vl-load-com)
+
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+            (vl-catch-all-apply
+              (function
+                (lambda ()
+                  (vlax-put-property rx 'global :vlax-true)
+                  (vlax-put-property rx 'multiline :vlax-true)
+                  (vlax-put-property rx 'ignorecase :vlax-false)
+                  (foreach pair
+                    '(("\032" . "\\\\\\\\")
+                      (" " . "\\\\P|\\n|\\t")
+                      ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                      ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                      ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                      ("$1" . "[\\\\]({)|{"))
+                    (setq str (_replace (car pair) (cdr pair) str))
+                  )
+                  (if mtx
+                    (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                    (_replace "\\" "\032" str)
+                  )
+                )
+              )
+            )
+          )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun c:organizeTables ( / tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord itemGroups)
+  ;; Initialize variables
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (setq itemNumbers '())
+  (setq itemGroups (make-sparse-array))
+  (setq yOffset 20.3848)
+
+  ;; Iterate over all entities to collect item numbers and their corresponding row heights
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+
+        ;; Get the item number and row height of the first row in each table
+        (setq cellContent (vla-getText table 0 0))
+        (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+        (setq itemNumber (atoi unformattedContent))
+        (setq rowHeight (vla-getRowHeight table 0))
+
+        ;; Store the item number and row height
+        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
+      )
+    )
+  )
+
+  ;; Sort item numbers
+  (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
+
+  ;; Group tables by item number
+  (foreach itemData sortedItemNumbers
+    (setq itemNumber (car itemData))
+    (setq table (cadr itemData))
+    (setq rowHeight (caddr itemData))
+    (if (assoc itemNumber itemGroups)
+      (setq itemGroups (subst (cons itemNumber (append (cdr (assoc itemNumber itemGroups)) (list (list table rowHeight)))) (assoc itemNumber itemGroups) itemGroups))
+      (setq itemGroups (cons (cons itemNumber (list (list table rowHeight))) itemGroups))
+    )
+  )
+
+  ;; Place tables based on grouped item numbers
+  (setq coord (list 1.5290 yOffset 0))
+  (foreach group (vl-sort itemGroups '(lambda (a b) (< (car a) (car b))))
+    (foreach tableData (cdr group)
+      (setq table (car tableData))
+      (vla-put-InsertionPoint table (vlax-3d-point coord))
+    )
+    (setq yOffset (- yOffset (cadar (cdr group))))
+    (setq coord (list 1.5290 yOffset 0))
+  )
+
+  (princ "\nTables organized and placed.")
+  (princ)
+)
+
+(princ "\nType organizeTables to organize and place the tables.\n")
+(princ)
