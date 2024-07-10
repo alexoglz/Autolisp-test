@@ -1,0 +1,118 @@
+(vl-load-com)  ; Load Visual LISP COM library
+
+;; Function: get-min-item-number
+;; Purpose: Get the minimum item number from the first column of a table
+(defun get-min-item-number (table)
+  "Get the minimum item number from the first column of a table"
+  (setq rowCount (vla-get-Rows table))  ; Get the number of rows in the table
+  (princ (strcat "\nNumber of rows: " (itoa rowCount)))  ; Print the number of rows
+  (setq minItem (strcase (vla-getText table 0 0)))  ; Get the text from the first cell and convert it to uppercase
+  (princ (strcat "\nInitial min item: " minItem))  ; Print the initial minimum item
+  (setq i 1)  ; Initialize the row counter
+  (while (< i rowCount)  ; Loop through each row in the table
+    (setq itemNumber (strcase (vla-getText table i 0)))  ; Get the text from the first column of the current row
+    (princ (strcat "\nItem number at row " (itoa i) ": " itemNumber))  ; Print the current item number
+    (if (< (atoi itemNumber) (atoi minItem))  ; Check if the current item number is smaller than minItem
+      (progn
+        (setq minItem itemNumber)  ; Update minItem if the current item number is smaller
+        (princ (strcat "\nNew min item: " minItem))))  ; Print the new minimum item
+    (setq i (1+ i)))  ; Increment the row counter
+  minItem)  ; Return the minimum item number
+
+;; Function: get-rowheight
+;; Purpose: Get the height of a specified row in a table
+(defun get-rowheight (table row)
+  "Get the height of a specified row in a table"
+  (setq rowHeight (vla-get-RowHeight table row))  ; Get the height of the specified row
+  (princ (strcat "\nRow height at row " (itoa row) ": " (rtos rowHeight 2 3)))  ; Print the row height
+  rowHeight)  ; Return the row height
+
+;; Function: get-tables-with-item-number
+;; Purpose: Get all tables that have a specific item number in the first row
+(defun get-tables-with-item-number (tables itemNumber)
+  "Get all tables that have a specific item number in the first row"
+  (setq itemTables '())  ; Initialize an empty list to store tables with the specific item number
+  (foreach table tables  ; Loop through each table
+    (if (= (atoi (strcase (vla-getText table 0 0))) (atoi itemNumber))  ; Check if the first cell's item number matches itemNumber
+      (progn
+        (setq itemTables (append itemTables (list table)))  ; Add the table to itemTables if it matches
+        (princ (strcat "\nTable with item number " itemNumber " found")))))  ; Print a message indicating a table with the item number was found
+  itemTables)  ; Return the list of tables with the item number
+
+;; Function: place-tables-at-coordinate
+;; Purpose: Place all tables at the specified coordinate
+(defun place-tables-at-coordinate (tables coordinate)
+  "Place all tables at the specified coordinate"
+  (foreach table tables  ; Loop through each table
+    (vla-put-InsertionPoint table coordinate)  ; Set the insertion point of each table to the specified coordinate
+    (princ (strcat "\nTable placed at coordinate: " (vl-prin1-to-string coordinate)))))  ; Print the coordinate where the table was placed
+
+;; Function: get-next-item-number
+;; Purpose: Get the next item number in sequence
+(defun get-next-item-number (current-item)
+  "Get the next item number in sequence"
+  (itoa (1+ (atoi current-item))))  ; Increment the current item number and convert it back to a string
+
+;; Function: get-tables-with-min-item
+;; Purpose: Command function to place tables with the minimum item number at a specified coordinate
+(defun C:placeMinItemTables ()
+  ;; Initial coordinate, edit here as necessary
+  (setq target-coordinate (vlax-3D-point '(10.0 10.0 0.0)))  ; Define the target coordinate
+  (princ (strcat "\nTarget coordinate: " (vl-prin1-to-string target-coordinate)))  ; Print the target coordinate
+
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))  ; Get the active document
+  (if (not doc)
+    (progn
+      (princ "\nError: Unable to retrieve ActiveDocument.")  ; Print an error message if ActiveDocument is nil
+      (princ)  ; End the function
+      (exit)))  ; Exit the function
+
+  (princ "\nActive document obtained")  ; Print a message indicating the active document was obtained
+  (setq tables '())  ; Initialize an empty list to store tables
+  
+  ;; Get all entities in the drawing
+  (setq modelSpace (vla-get-ModelSpace doc))  ; Get the model space of the drawing
+  (vlax-for ent modelSpace  ; Loop through each entity in the model space
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")  ; Check if the entity is a table
+      (progn
+        (setq tables (append tables (list ent)))  ; Add the table to the list
+        (princ "\nTable found and added to list"))))  ; Print a message indicating a table was found and added
+
+  (if (null tables)
+    (progn
+      (princ "\nError: No tables found in the document.")
+      (princ)  ; End the function
+      (exit)))  ; Exit the loop if no tables found
+
+  ;; Get the overall minimum item number from all tables
+  (setq minItem "999999")  ; Initialize minItem with a large value
+  (foreach table tables
+    (setq itemNumber (strcase (vla-getText table 0 0)))
+    (princ (strcat "\nItem number in table: " itemNumber))
+    (if (< (atoi itemNumber) (atoi minItem))
+      (progn
+        (setq minItem itemNumber)
+        (princ (strcat "\nNew min item: " minItem)))))
+  
+  (setq current-item minItem)  ; Start with the overall minimum item number
+  (while (not (null tables))  ; Loop until all tables have been processed
+    (setq itemTables (get-tables-with-item-number tables current-item))  ; Get tables with the current item number
+    (princ (strcat "\nTables with item number " current-item " obtained"))  ; Print a message indicating the tables were obtained
+
+    (if (null itemTables)
+      (princ (strcat "\nNo tables found with item number " current-item))
+      (progn
+        (place-tables-at-coordinate itemTables target-coordinate)  ; Place the tables at the target coordinate
+        (setq rowHeight (get-rowheight (car itemTables) 0))  ; Get the row height of the first row of the table
+        (setq target-coordinate (vlax-3D-point (list (car target-coordinate) (- (cadr target-coordinate) rowHeight) 0.0)))  ; Update the target coordinate
+        (princ (strcat "\nNew target coordinate: " (vl-prin1-to-string target-coordinate)))  ; Print the new target coordinate
+        ;; Remove the processed tables from the list
+        (setq tables (vl-remove-if (lambda (table) (= (atoi (strcase (vla-getText table 0 0))) (atoi current-item))) tables))))
+
+    (setq current-item (get-next-item-number current-item)))  ; Get the next item number
+
+  (princ "\nAll tables have been placed.")  ; Print a message to the command line
+  (princ))  ; End the function
+
+(princ "\nType 'placeMinItemTables' to place tables with the minimum item number at the specified coordinate.\n")  ; Print instructions
+(princ)  ; End the script
