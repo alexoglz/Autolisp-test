@@ -43,7 +43,7 @@
 (defun c:organizeTables ( / tables table itemNumbers rowCount colCount i cellContent unformattedContent minItemNumber minRowHeight yOffset coord)
   ;; Initialize variables
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
-  (setq itemNumbers (make-sparse-array))
+  (setq itemNumbers '())
   (setq yOffset 20.3848)
 
   ;; Iterate over all entities to collect item numbers and their corresponding row heights
@@ -61,25 +61,20 @@
         (setq rowHeight (vla-getRowHeight table 0))
 
         ;; Store the item number and row height
-        (if (not (assoc itemNumber itemNumbers))
-          (setq itemNumbers (append itemNumbers (list (cons itemNumber (list table rowHeight)))))
-          (setq itemNumbers (subst (cons itemNumber (append (cdr (assoc itemNumber itemNumbers)) (list (list table rowHeight)))) (assoc itemNumber itemNumbers) itemNumbers))
-        )
+        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
       )
     )
   )
 
   ;; Sort item numbers
-  (setq sortedItemNumbers (vl-sort (mapcar 'car itemNumbers) '<))
+  (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
 
   ;; Place tables based on sorted item numbers
   (setq coord (list 1.5290 yOffset 0))
-  (foreach itemNumber sortedItemNumbers
-    (foreach tableData (cdr (assoc itemNumber itemNumbers))
-      (setq table (car tableData))
-      (setq rowHeight (cadr tableData))
-      (vla-put-Coordinates table (vlax-3d-point coord))
-    )
+  (foreach itemData sortedItemNumbers
+    (setq table (cadr itemData))
+    (setq rowHeight (caddr itemData))
+    (vla-put-Coordinates table (vlax-3d-point coord))
     (setq yOffset (- yOffset rowHeight))
     (setq coord (list 1.5290 yOffset 0))
   )
