@@ -1,0 +1,137 @@
+(vl-load-com)
+
+(defun LM:UnFormat ( str mtx / _replace rx )
+  (defun _replace ( new old str )
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ( )
+              (vlax-put-property rx 'global     actrue)
+              (vlax-put-property rx 'multiline  actrue)
+              (vlax-put-property rx 'ignorecase acfalse) 
+              (foreach pair
+                '(
+                  ("\032"    . "\\\\\\\\")
+                  (" "       . "\\\\P|\\n|\\t")
+                  ("$1"      . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2"    . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1"      . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\"   "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun get-min-item-number (table)
+  (setq rowCount (vla-get-Rows table))
+  (princ (strcat "\nNumber of rows: " (itoa rowCount)))
+  (setq minItem (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
+  (princ (strcat "\nInitial min item: " minItem))
+  (setq i 1)
+  (while (< i rowCount)
+    (setq itemNumber (strcase (LM:UnFormat (vla-getText table i 0) nil)))
+    (princ (strcat "\nItem number at row " (itoa i) ": " itemNumber))
+    (if (< (atoi itemNumber) (atoi minItem))
+      (progn
+        (setq minItem itemNumber)
+        (princ (strcat "\nNew min item: " minItem))))
+    (setq i (1+ i)))
+  minItem)
+
+(defun get-tables-with-item-number (tables itemNumber)
+  (setq itemTables '())
+  (foreach table tables
+    (setq firstCell (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
+    (princ (strcat "\nItem number in table: " firstCell))
+    (if (= firstCell itemNumber)
+      (progn
+        (setq itemTables (append itemTables (list table)))
+        (princ (strcat "\nTable with item number " itemNumber " found")))))
+  itemTables)
+
+(defun get-rowheight (table row)
+  (vla-getRowHeight table row))
+
+(defun place-tables-at-coordinate (tables coordinate)
+  (foreach table tables
+    (vla-put-InsertionPoint table coordinate)
+    (princ (strcat "\nTable placed at coordinate: " (vl-prin1-to-string coordinate)))))
+
+(defun get-next-item-number (item)
+  (itoa (1+ (atoi item))))
+
+(defun C:placeMinItemTables ()
+  (setq target-coordinate (vlax-3D-point '(10.0 10.0 0.0)))
+  (princ (strcat "\nTarget coordinate: " (vl-prin1-to-string target-coordinate)))
+
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (princ "\nActive document obtained")
+  (setq tables '())
+
+  (setq modelSpace (vla-get-ModelSpace doc))
+  (vlax-for ent modelSpace
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq tables (append tables (list ent)))
+        (princ "\nTable found and added to list"))))
+
+  (setq minItem "999999")
+  (foreach table tables
+    (setq itemNumber (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
+    (princ (strcat "\nItem number in table: " itemNumber))
+    (if (< (atoi itemNumber) (atoi minItem))
+      (progn
+        (setq minItem itemNumber)
+        (princ (strcat "\nNew min item: " minItem)))))
+
+  (setq current-item minItem)
+  (while (not (null tables))
+    (setq itemTables (get-tables-with-item-number tables current-item))
+    (princ (strcat "\nTables with item number " current-item " obtained"))
+
+    (if (null itemTables)
+      (progn
+        (setq current-item (get-next-item-number current-item))
+        (princ (strcat "\nNo tables found with item number " current-item ". Moving to next item number.")))
+      
+      (progn
+        (place-tables-at-coordinate itemTables target-coordinate)
+        (setq tables (vl-remove-if
+                       '(lambda (table)
+                          (member table itemTables))
+                       tables))
+
+        (setq rowHeight (get-rowheight (car itemTables) 0))
+        (setq target-coordinate (vlax-3D-point
+                                  (list (car target-coordinate)
+                                        (- (cadr target-coordinate) rowHeight)
+                                        (caddr target-coordinate))))
+        (princ (strcat "\nNew target coordinate: " (vl-prin1-to-string target-coordinate)))
+        (setq current-item (get-next-item-number current-item))
+        (princ (strcat "\nMoving to next item number: " current-item)))))
+
+  (princ "\nAll tables have been placed.")
+  (princ)
+)
+
+(princ "\nType placeMinItemTables to place tables with minimum item numbers at specified coordinates.\n")
+(princ)
