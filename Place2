@@ -49,7 +49,9 @@
   (setq i 0)
   (while (< i rowCount)
     (setq thisTableHeight (vlax-safearray-get itemHeights i))
-    (setq tableStartCoords (vlax-safearray-put tableStartCoords (vlax-safearray-get-u-bound tableStartCoords 1) thisTableHeight))
+    (if (and thisTableHeight (vlax-safearray-get tableStartCoords 1))
+      (setq tableStartCoords (vlax-safearray-put tableStartCoords (vlax-safearray-get-u-bound tableStartCoords 1) thisTableHeight))
+    )
     (setq tableStartCoord (list (car tableStartCoord) (- (cadr tableStartCoord) (vla-safearray-get itemHeights i)) (cadar tableStartCoord)))
     (setq i (1+ i)) ;; Increment index
   )
