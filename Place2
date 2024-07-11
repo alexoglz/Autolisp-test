@@ -1,68 +1,84 @@
-(vl-load-com)
-
-;; UnFormat String function by Lee Mac
-(defun LM:UnFormat (str mtx / _replace rx)
-  (defun _replace (new old str)
-    (vlax-put-property rx 'pattern old)
-    (vlax-invoke rx 'replace str new)
-  )
-  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
-    (progn
-      (setq str
-        (vl-catch-all-apply
-          (function
-            (lambda ()
-              (vlax-put-property rx 'global actrue)
-              (vlax-put-property rx 'multiline actrue)
-              (vlax-put-property rx 'ignorecase acfalse)
-              (foreach pair
-                '(
-                  ("\032" . "\\\\\\\\")
-                  (" " . "\\\\P|\\n|\\t")
-                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
-                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
-                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
-                  ("$1" . "[\\\\]({)|{")
-                )
-                (setq str (_replace (car pair) (cdr pair) str))
-              )
-              (if mtx
-                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
-                (_replace "\\" "\032" str)
-              )
-            )
-          )
-        )
-      )
-      (vlax-release-object rx)
-      (if (null (vl-catch-all-error-p str))
-        str
-      )
-    )
-  )
-)
-
 (defun c:locateTables ()
   (vl-load-com)
 
-  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
-  (setq itemHeights (vl-make-hash-table))
+  ;; Local Variables
+  (setq tables nil)
+  (setq itemHeights (vlax-make-safearray vlax-vbdouble '(0) 1))
+  (setq coordinates (vlax-make-safearray vlax-vbdouble '(0 2) 1))
+  (setq currentCoordinate '(10.0 10.0 0.0))
+
+  ;; UnFormat String function by Lee Mac
+  (defun LM:UnFormat (str mtx / _replace rx)
+    (defun _replace (new old str)
+      (vlax-put-property rx 'pattern old)
+      (vlax-invoke rx 'replace str new)
+    )
+    (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+      (progn
+        (setq str
+              (vl-catch-all-apply
+                (function
+                  (lambda ()
+                    (vlax-put-property rx 'global     actrue)
+                    (vlax-put-property rx 'multiline  actrue)
+                    (vlax-put-property rx 'ignorecase acfalse)
+                    (foreach pair
+                             '(
+                               ("\032"    . "\\\\\\\\")
+                               (" "       . "\\\\P|\\n|\\t")
+                               ("$1"      . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                               ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                               ("$1$2"    . "\\\\(\\\\S)|[\\\\](})|}")
+                               ("$1"      . "[\\\\]({)|{")
+                               )
+                      (setq str (_replace (car pair) (cdr pair) str))
+                      )
+                    (if mtx
+                          (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                          (_replace "\\"   "\032" str)
+                      )
+                    )
+                  )
+                )
+              )
+        (vlax-release-object rx)
+        (if (null (vl-catch-all-error-p str))
+              str
+            )
+        )
+      )
+    )
+  ;; Retrieve all tables in the ModelSpace
+  (setq tables (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (setq tables (vla-get-ModelSpace tables))
 
   ;; Collect item numbers and their corresponding row heights
-  (vlax-for ent tables
-    (if (eq (vla-get-objectname ent) "AcDbTable")
+  (vlax-for tbl tables
+    (if (= (vla-get-objectname tbl) "AcDbTable")
       (progn
-        (setq table ent)
-        (setq rowCount (vla-get-Rows table))
-        (setq colCount (vla-get-Columns table))
+        (setq rowCount (vla-get-Rows tbl))
+        (setq colCount (vla-get-Columns tbl))
 
         (setq i 0)
         (while (< i rowCount)
-          (setq cellContent (LM:UnFormat (vla-getText table i 0) nil))
-          (setq rowHeight (vla-getRowHeight table i))
-          
-          (if (not (member cellContent (hash-keys itemHeights)))
-            (setq itemHeights (hash-set itemHeights cellContent rowHeight))
+          (setq cellContent (LM:UnFormat (vla-getText tbl i 0) nil))
+          (setq rowHeight (vla-getRowHeight tbl i))
+
+          (setq found nil)
+          (setq j 0)
+          (while (and (not found) (< j (vlax-safearray-get-upper-bound itemHeights 1)))
+            (if (= cellContent (vlax-safearray-get itemHeights j))
+              (progn
+                (setq found t)
+              )
+            )
+            (setq j (1+ j))
+          )
+
+          (if (not found)
+            (progn
+              (vla-safearray-put-item itemHeights (vlax-safearray-get-upper-bound itemHeights 1) cellContent cellContent)
+            )
           )
 
           (setq i (1+ i))
@@ -73,39 +89,42 @@
 
   ;; Find the smallest item number
   (setq smallestItem nil)
-  (foreach item (hash-keys itemHeights)
-    (if (or (null smallestItem) (< (atoi item) smallestItem))
-      (setq smallestItem (atoi item))
+  (setq i 0)
+  (while (< i (vlax-safearray-get-upper-bound itemHeights 1))
+    (if (or (null smallestItem) (< (vlax-safearray-get itemHeights i) smallestItem))
+      (setq smallestItem (vlax-safearray-get itemHeights i))
+      )
+    (setq i (1+ i))
     )
-  )
 
   ;; Assign coordinates based on row heights
-  (setq currentCoordinate '(10 10 0))
-  (setq coordinates (vl-make-hash-table))
-
-  (setq currentItem smallestItem)
-  (while (<= currentItem (hash-get itemHeights (hash-max itemHeights)))
-    (setq itemHeight (hash-get itemHeights (itoa currentItem)))
-    (setq coordinates (hash-set coordinates (itoa currentItem) currentCoordinate))
+  (setq i 0)
+  (while (< i (vlax-safearray-get-upper-bound itemHeights 1))
+    (setq itemHeight (vla-getRowHeight tbl i))
+    (if (= smallestItem (vlax-safearray-get itemHeights i))
+      (progn
+        (vla-safearray-put-item coordinates (vlax-safearray-get-upper-bound coordinates 1) (vlax-variant-value-list currentCoordinate) (vlax-variant-value-list currentCoordinate))
+        )
+      )
     (setq currentCoordinate (list (car currentCoordinate) (- (cadr currentCoordinate) itemHeight) (caddr currentCoordinate)))
-    (setq currentItem (1+ currentItem))
-  )
+    (setq i (1+ i))
+    )
 
   ;; Place tables at their associated coordinates
-  (vlax-for ent tables
-    (if (eq (vla-get-objectname ent) "AcDbTable")
+  (vlax-for tbl tables
+    (if (= (vla-get-objectname tbl) "AcDbTable")
       (progn
-        (setq table ent)
-        (setq firstItem (LM:UnFormat (vla-getText table 0 0) nil))
-        (setq tableCoordinate (hash-get coordinates firstItem))
-        (vla-move table tableCoordinate)
+        (setq tbl (vla-get-ActiveDocument (vlax-get-acad-object)))
+        (setq tbl (vla-get-ModelSpace tbl))
+        (vla-move tbl coordinates)
+        )
       )
     )
-  )
 
   (princ "\nTables have been located and placed.")
   (princ)
-)
+  )
 
 (princ "\nType locateTables to run the script.\n")
 (princ)
+`` modified
