@@ -1,0 +1,53 @@
+(vl-load-com) 
+(defun c:formatAllTables (/ table textHeight verticalMargin horizontalMargin rowCount rowNumber minRowHeight) ;;defines the function as formatTable and establishes the local variables inside parenthesis
+  
+  ;;Modify the following variables to change text height and cell margins
+  (setq textHeight 0.1389) ;;modify this number to change the table's text height
+  (setq verticalMargin 0.06) ;;modify this number to change the vertical margin of the table cells
+  (setq horizontalMargin 0.06) ;;modify this number to change the horizontal margin of the table cells
+  
+  (setq minRowHeight 0) ;;initialize variable for minimum row height
+  
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (print "\nRetrieved all entities in the drawing.")
+  
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (progn
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table)) ;;vla-get-rows returns the number of rows and sets it to rowCount
+        (setq colCount (vla-get-Columns table))
+        (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+
+        ;; Iterate over all rows to find the maximum height of the row with the specified item number
+        (setq i 0)
+        (while (< i rowCount)
+          ;;Sets the column widths
+          (vla-setcolumnwidth table 0 0.6415) ;;set the first column to 0.6415 units wide.
+          (vla-setcolumnwidth table 1 2.1142) ;;set the second column to 2.1142 units wide.
+          (vla-setcolumnwidth table 2 2.6856) ;;set the third column to 2.6856 units wide.
+          (vla-setcolumnwidth table 3 2.5281) ;;set the fourth column to 2.5281 units wide.
+          (vla-setcolumnwidth table 4 0.9262) ;;set the fifth column to 0.9262 units wide.
+          (vla-setcolumnwidth table 5 6.5582) ;;set the sixth column to 6.5582 units wide.
+          
+            ;;Sets the text height and cell margins
+          (vla-settextheight table acDataRow textHeight) ;set all data rows to text height 0.1389
+          (vla-put-VertCellMargin table verticalMargin) ;; Sets the vertical margin for the table cells
+          (vla-put-HorzCellMargin table horizontalMargin) ;; Sets the horizontal margin for the table cells
+          
+          (setq minRowHeight (vla-getminimumrowheight table i)) ;;gets the minimum row height based on the text
+          (vla-setRowHeight table i minRowHeight) ;;sets the minimum row height as the row height
+          (vla-setcellalignment table i 0 acMiddleCenter) ;;set first column to middle center alignment
+          (vla-setcellalignment table i 1 acMiddleLeft) ;;set second column to left center alignment
+          (vla-setcellalignment table i 2 acMiddleLeft) ;;set third column to left center alignment
+          (vla-setcellalignment table i 3 acMiddleLeft) ;;set fourth column to left center alignment
+          (vla-setcellalignment table i 4 acMiddleCenter) ;;set fifth column to middle center alignment
+          (vla-setcellalignment table i 5 acMiddleLeft) ;;set sixth column to left center alignment
+    
+          (setq i (+ i 1)) ;;add 1 to counter variable
+        );;close while loop
+      )
+    )
+  )
+    
+)
