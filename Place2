@@ -35,7 +35,7 @@
                       )
                     (if mtx
                           (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
-                          (_replace "\\"   "\032" str)
+                          (_replace "\" "\032" str)
                       )
                     )
                   )
@@ -127,4 +127,3 @@
 
 (princ "\nType locateTables to run the script.\n")
 (princ)
-`` modified
