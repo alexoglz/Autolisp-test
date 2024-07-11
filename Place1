@@ -1,0 +1,116 @@
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun collect-item-numbers-and-heights ()
+  (setq item-num-heights (make-hash-table))
+  (setq all-tables (ssget "X" '((0 . "ACAD_TABLE"))))
+
+  (if all-tables
+    (progn
+      (setq table-count (sslength all-tables))
+      (repeat table-count
+        (setq table (vlax-ename->vla-object (ssname all-tables (setq table-count (1- table-count)))))
+        (setq rows (vla-get-Rows table))
+        (setq row-count (vla-get-Count rows))
+        (repeat row-count
+          (setq row (vla-Item rows (setq row-count (1- row-count))))
+          (setq item-number (LM:UnFormat (vla-GetText row 0)))
+          (setq row-height (vla-get-Height row))
+          (if (not (vl-hash-table-get item-num-heights item-number))
+            (vl-hash-table-set item-num-heights item-number row-height)
+          )
+        )
+      )
+    )
+  )
+)
+
+(defun find-smallest-item-number (hash-table)
+  (setq smallest-item-number nil)
+  (foreach key (vl-hash-table-keys hash-table)
+    (if (or (null smallest-item-number) (< (atoi key) (atoi smallest-item-number)))
+      (setq smallest-item-number key)
+    )
+  )
+  smallest-item-number
+)
+
+(defun assign-coordinates-to-item-numbers (hash-table start-coord)
+  (setq item-coord-pairs (list))
+  (setq current-coord start-coord)
+  (setq keys (vl-sort (vl-hash-table-keys hash-table) '<))
+
+  (foreach key keys
+    (setq row-height (vl-hash-table-get hash-table key))
+    (setq current-coord (list (car current-coord) (- (cadr current-coord) row-height) 0))
+    (setq item-coord-pairs (append item-coord-pairs (list (cons key current-coord))))
+  )
+  item-coord-pairs
+)
+
+(defun place-tables (item-coord-pairs)
+  (setq all-tables (ssget "X" '((0 . "ACAD_TABLE"))))
+
+  (if all-tables
+    (progn
+      (setq table-count (sslength all-tables))
+      (repeat table-count
+        (setq table (vlax-ename->vla-object (ssname all-tables (setq table-count (1- table-count)))))
+        (setq first-item-number (LM:UnFormat (vla-GetText (vla-Item (vla-get-Rows table) 0) 0)))
+        (setq coord (cdr (assoc first-item-number item-coord-pairs)))
+        (if coord
+          (vla-put-InsertionPoint table coord)
+        )
+      )
+    )
+  )
+)
+
+(defun main ()
+  (collect-item-numbers-and-heights)
+  (setq smallest-item-number (find-smallest-item-number item-num-heights))
+  (setq start-coord '(10 10 0))
+  (setq item-coord-pairs (assign-coordinates-to-item-numbers item-num-heights start-coord))
+  (place-tables item-coord-pairs)
+)
+
+(main)
