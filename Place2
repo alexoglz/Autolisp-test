@@ -47,10 +47,19 @@
       (if (setq item-number (car (read (strcat "(" unformatted ")"))))
         (progn
           (setq height (vlax-get-property current-row 'Height))
-          (if (assoc item-number item-heights)
-            (setq height (cdr (assoc item-number item-heights)))
+          ;; Check if item-number already exists in item-heights
+          (setq found nil)
+          (foreach (item num) item-heights
+            (if (= item item-number)
+              (progn
+                (setq found t)
+                (setq num height)
+              )
+            )
           )
-          (setq item-heights (cons (cons item-number height) item-heights))
+          (if (not found)
+            (setq item-heights (cons (list item-number height) item-heights))
+          )
         )
       )
     )
@@ -74,9 +83,9 @@
     (setq current-coord '(10.0 10.0 0.0))
     (foreach item item-heights
       (setq item-number (car item))
-      (setq height (cdr item))
+      (setq height (cadr item))
       (setq coord (list (car current-coord) (cadr current-coord) (caddr current-coord)))
-      (setq coords (cons (cons item-number coord) coords))
+      (setq coords (cons (list item-number coord) coords))
       (if (= item-number min-item)
         (setq base-coord coord)
         (setq current-coord (list (car current-coord) (- (cadr current-coord) height) (caddr current-coord)))
