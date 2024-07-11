@@ -1,13 +1,8 @@
-(defun c:locateTables ()
+;; Command to process tables in AutoCAD drawing
+(defun c:ProcessTables (/ tables item-heights min-item coords current-coord)
   (vl-load-com)
-
-  ;; Local Variables
-  (setq tables nil)
-  (setq itemHeights (vlax-make-safearray vlax-vbdouble '(0) 1))
-  (setq coordinates (vlax-make-safearray vlax-vbdouble '(0 2) 1))
-  (setq currentCoordinate '(10.0 10.0 0.0))
-
-  ;; UnFormat String function by Lee Mac
+  
+  ;; Function to strip table formatting using Lee Mac's UnFormat function
   (defun LM:UnFormat (str mtx / _replace rx)
     (defun _replace (new old str)
       (vlax-put-property rx 'pattern old)
@@ -16,114 +11,111 @@
     (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
       (progn
         (setq str
-              (vl-catch-all-apply
-                (function
-                  (lambda ()
-                    (vlax-put-property rx 'global     actrue)
-                    (vlax-put-property rx 'multiline  actrue)
-                    (vlax-put-property rx 'ignorecase acfalse)
-                    (foreach pair
-                             '(
-                               ("\032"    . "\\\\\\\\")
-                               (" "       . "\\\\P|\\n|\\t")
-                               ("$1"      . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
-                               ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
-                               ("$1$2"    . "\\\\(\\\\S)|[\\\\](})|}")
-                               ("$1"      . "[\\\\]({)|{")
-                               )
-                      (setq str (_replace (car pair) (cdr pair) str))
-                      )
-                    (if mtx
-                          (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
-                          (_replace "\" "\032" str)
-                      )
-                    )
-                  )
-                )
-              )
+          (vl-catch-all-apply
+            '(lambda ()
+               (vlax-put-property rx 'global t)
+               (vlax-put-property rx 'multiline t)
+               (vlax-put-property rx 'ignorecase nil)
+               (foreach pair
+                 '(("\032" . "\\\\")
+                   (" " . "\\P|\\n|\\t")
+                   ("$1" . "\\([ACcFfHLlOopQTW]\\])|\\[ACcFfHLlOopQTW][^\\;];|\\[ACcFfHLlOopQTW]")
+                   ("$1$2/$3" . "\\([^\\]\\)\\S\\([^;]\\)/#\\^;"))
+                 (setq str (_replace (car pair) (cdr pair) str))
+               )
+               (if mtx
+                 (_replace "\\" "\032" (_replace "\$1$2$3" "(\\[ACcFfHLlOoPpQSTW]\\])|({)|(})" str))
+                 (_replace "\"" "\032" str)
+               )
+             )
+          )
+        )
         (vlax-release-object rx)
-        (if (null (vl-catch-all-error-p str))
-              str
-            )
-        )
-      )
-    )
-  ;; Retrieve all tables in the ModelSpace
-  (setq tables (vla-get-ActiveDocument (vlax-get-acad-object)))
-  (setq tables (vla-get-ModelSpace tables))
-
-  ;; Collect item numbers and their corresponding row heights
-  (vlax-for tbl tables
-    (if (= (vla-get-objectname tbl) "AcDbTable")
-      (progn
-        (setq rowCount (vla-get-Rows tbl))
-        (setq colCount (vla-get-Columns tbl))
-
-        (setq i 0)
-        (while (< i rowCount)
-          (setq cellContent (LM:UnFormat (vla-getText tbl i 0) nil))
-          (setq rowHeight (vla-getRowHeight tbl i))
-
-          (setq found nil)
-          (setq j 0)
-          (while (and (not found) (< j (vlax-safearray-get-upper-bound itemHeights 1)))
-            (if (= cellContent (vlax-safearray-get itemHeights j))
-              (progn
-                (setq found t)
-              )
-            )
-            (setq j (1+ j))
-          )
-
-          (if (not found)
-            (progn
-              (vla-safearray-put-item itemHeights (vlax-safearray-get-upper-bound itemHeights 1) cellContent cellContent)
-            )
-          )
-
-          (setq i (1+ i))
-        )
+        (if (null (vl-catch-all-error-p str)) str)
       )
     )
   )
-
+  
+  ;; Function to parse tables and collect item numbers and row heights
+  (defun collect-item-heights (table item-heights)
+    (setq rows (vlax-invoke table 'Rows))
+    (setq current-row nil)
+    (repeat (vlax-get-property rows 'Count)
+      (setq current-row (vlax-invoke rows 'Item (setq cnt (1+ cnt))))
+      (setq text (vlax-get-property current-row 'TextString))
+      (setq unformatted (LM:UnFormat text nil))
+      (if (setq item-number (car (read (strcat "(" unformatted ")"))))
+        (progn
+          (setq height (vlax-get-property current-row 'Height))
+          (if (assoc item-number item-heights)
+            (setq height (cdr (assoc item-number item-heights)))
+          )
+          (setq item-heights (cons (cons item-number height) item-heights))
+        )
+      )
+    )
+    item-heights
+  )
+  
+  ;; Function to find the smallest item number
+  (defun find-min-item (item-heights)
+    (setq min-item nil)
+    (foreach item item-heights
+      (if (or (null min-item) (< (car item) min-item))
+        (setq min-item (car item))
+      )
+    )
+    min-item
+  )
+  
+  ;; Function to assign coordinates based on item numbers and row heights
+  (defun assign-coordinates (item-heights min-item)
+    (setq coords nil)
+    (setq current-coord '(10.0 10.0 0.0))
+    (foreach item item-heights
+      (setq item-number (car item))
+      (setq height (cdr item))
+      (setq coord (list (car current-coord) (cadr current-coord) (caddr current-coord)))
+      (setq coords (cons (cons item-number coord) coords))
+      (if (= item-number min-item)
+        (setq base-coord coord)
+        (setq current-coord (list (car current-coord) (- (cadr current-coord) height) (caddr current-coord)))
+      )
+    )
+    coords
+  )
+  
+  ;; Function to place tables at assigned coordinates
+  (defun place-tables (tables coords)
+    (foreach table tables
+      (setq rows (vlax-invoke table 'Rows))
+      (setq current-row nil)
+      (setq text (vlax-get-property (vlax-invoke rows 'Item 0) 'TextString))
+      (setq unformatted (LM:UnFormat text nil))
+      (setq item-number (car (read (strcat "(" unformatted ")"))))
+      (setq coord (cdr (assoc item-number coords)))
+      (vlax-put-property table 'Position (vlax-3D-point coord))
+    )
+  )
+  
+  ;; Get all tables in the drawing
+  (setq tables (vla-get-Tables (vla-get-activedocument (vlax-get-acad-object))))
+  
+  ;; Collect item numbers and row heights across all tables
+  (setq item-heights nil)
+  (foreach table tables
+    (setq item-heights (collect-item-heights table item-heights))
+  )
+  
   ;; Find the smallest item number
-  (setq smallestItem nil)
-  (setq i 0)
-  (while (< i (vlax-safearray-get-upper-bound itemHeights 1))
-    (if (or (null smallestItem) (< (vlax-safearray-get itemHeights i) smallestItem))
-      (setq smallestItem (vlax-safearray-get itemHeights i))
-      )
-    (setq i (1+ i))
-    )
-
-  ;; Assign coordinates based on row heights
-  (setq i 0)
-  (while (< i (vlax-safearray-get-upper-bound itemHeights 1))
-    (setq itemHeight (vla-getRowHeight tbl i))
-    (if (= smallestItem (vlax-safearray-get itemHeights i))
-      (progn
-        (vla-safearray-put-item coordinates (vlax-safearray-get-upper-bound coordinates 1) (vlax-variant-value-list currentCoordinate) (vlax-variant-value-list currentCoordinate))
-        )
-      )
-    (setq currentCoordinate (list (car currentCoordinate) (- (cadr currentCoordinate) itemHeight) (caddr currentCoordinate)))
-    (setq i (1+ i))
-    )
-
-  ;; Place tables at their associated coordinates
-  (vlax-for tbl tables
-    (if (= (vla-get-objectname tbl) "AcDbTable")
-      (progn
-        (setq tbl (vla-get-ActiveDocument (vlax-get-acad-object)))
-        (setq tbl (vla-get-ModelSpace tbl))
-        (vla-move tbl coordinates)
-        )
-      )
-    )
-
-  (princ "\nTables have been located and placed.")
+  (setq min-item (find-min-item item-heights))
+  
+  ;; Assign coordinates based on item numbers and row heights
+  (setq coords (assign-coordinates item-heights min-item))
+  
+  ;; Place tables at assigned coordinates based on their starting item number
+  (place-tables tables coords)
+  
+  (princ "\nTables processed and placed successfully.")
   (princ)
-  )
-
-(princ "\nType locateTables to run the script.\n")
-(princ)
+)
