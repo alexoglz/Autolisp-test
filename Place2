@@ -5,8 +5,8 @@
 
 ;; Main function to organize tables
 (defun OrganizeTables (/ item-num-heights smallest-item-number start-coord item-coord-pairs all-tables table first-item-number coord)
-  ;; Use lists or cons pairs instead of hash tables
-  (setq item-num-heights '()) ;; Initialize as an empty list
+  ;; Initialize lists for item numbers and heights
+  (setq item-num-heights '())
 
   ;; Function to collect item numbers and their heights from all tables
   (defun collect-item-numbers-and-heights ()
@@ -22,7 +22,8 @@
             (setq row (vla-Item rows (setq row-count (1- row-count)))))
             (setq item-number (LM:UnFormat (vla-GetText row 0)))
             (setq row-height (vla-get-Height row))
-            (setq item-num-heights (cons (list item-number row-height) item-num-heights))
+            ;; Store item number and height as a cons pair in item-num-heights list
+            (setq item-num-heights (cons (cons item-number row-height) item-num-heights))
           )
         )
       )
@@ -46,11 +47,14 @@
     (setq item-coord-pairs '()) ;; Initialize as an empty list
     (setq current-coord start-coord)
 
+    ;; Iterate through list and calculate coordinates based on row heights
     (foreach pair list
-      (setq current-coord (list (car current-coord) (- (cadr current-coord) (cadar pair)) 0))
+      (setq current-coord (list (car current-coord) (- (cadr current-coord) (cdar pair)) 0))
+      ;; Store item number and coordinate pair in item-coord-pairs list
       (setq item-coord-pairs (cons (cons (car pair) current-coord) item-coord-pairs))
     )
-    (reverse item-coord-pairs) ;; Reverse the list to maintain correct order
+    ;; Reverse the list to maintain correct order
+    (reverse item-coord-pairs)
   )
 
   ;; Function to place tables based on item coordinates
@@ -63,9 +67,10 @@
         (repeat table-count
           (setq table (vlax-ename->vla-object (ssname all-tables (setq table-count (1- table-count))))))
           (setq first-item-number (LM:UnFormat (vla-GetText (vla-Item (vla-get-Rows table) 0) 0)))
+          ;; Find coordinate associated with the first item number in item-coord-pairs
           (setq coord (cdr (assoc first-item-number item-coord-pairs)))
           (if coord
-            (vla-put-InsertionPoint table coord)
+            (vla-put-InsertionPoint table coord) ;; Set the insertion point of the table
           )
         )
       )
@@ -75,9 +80,9 @@
   ;; Main execution starts here
   (collect-item-numbers-and-heights)
   (setq smallest-item-number (find-smallest-item-number item-num-heights))
-  (setq start-coord '(10 10 0))
+  (setq start-coord '(10 10 0)) ;; Starting coordinate
   (setq item-coord-pairs (assign-coordinates-to-item-numbers item-num-heights start-coord))
-  (place-tables item-coord-pairs)
-  (princ "\nTables organized successfully!")
-  (princ)
+  (place-tables item-coord-pairs) ;; Place tables based on calculated coordinates
+  (princ "\nTables organized successfully!") ;; Print success message
+  (princ) ;; End function
 )
