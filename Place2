@@ -1,53 +1,93 @@
-(defun c:organizeTables (/ tables itemNumbers sortedItemNumbers rowCount colCount yOffset coord)
+(vl-load-com)
 
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+            (vl-catch-all-apply
+              (function
+                (lambda ()
+                  (vlax-put-property rx 'global :vlax-true)
+                  (vlax-put-property rx 'multiline :vlax-true)
+                  (vlax-put-property rx 'ignorecase :vlax-false)
+                  (foreach pair
+                    '(("\032" . "\\\\\\\\")
+                      (" " . "\\\\P|\\n|\\t")
+                      ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                      ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                      ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                      ("$1" . "[\\\\]({)|{"))
+                    (setq str (_replace (car pair) (cdr pair) str))
+                  )
+                  (if mtx
+                    (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                    (_replace "\\" "\032" str)
+                  )
+                )
+              )
+            )
+          )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun c:organizeTables ( / tables table itemNumbers yOffset coord)
   ;; Initialize variables
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
-  (setq itemNumbers '())
-  (setq yOffset 20.3848) ;; Initial y offset
+  (setq itemNumbers (make-sparse))
+  (setq yOffset 20.3848)
 
-  ;; Iterate over all tables to collect item numbers and row heights
+  ;; Iterate over all entities to collect item numbers and their corresponding row heights
   (vlax-for ent tables
     (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
       (progn
         (setq table ent)
-        (setq rowCount (vla-get-Rows table))
-        (setq colCount (vla-get-Columns table))
-
-        ;; Get the item number and row height of the first row in each table
         (setq cellContent (vla-getText table 0 0))
         (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
         (setq itemNumber (atoi unformattedContent))
-        (setq rowHeight (vla-getRowHeight table 0))
 
-        ;; Store the item number, table object, and row height
-        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
+        ;; Store the table in a list associated with the item number
+        (if (not (assoc itemNumber itemNumbers))
+          (setq itemNumbers (append itemNumbers (list (list itemNumber (list table)))))
+          (setq itemNumbers (mapcar (function (lambda (item)
+                                                (if (= (car item) itemNumber)
+                                                  (cons (car item) (append (cadr item) (list table)))
+                                                  item
+                                                )
+                                              )
+                                    )
+                                    itemNumbers
+                         )
+          )
+        )
       )
     )
   )
 
-  ;; Sort item numbers by ascending item number
+  ;; Sort item numbers
   (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
 
-  ;; Initialize the starting coordinate based on the smallest item number
-  (setq coord (list 1.5290 yOffset 0))
-
   ;; Place tables based on sorted item numbers
+  (setq coord (list 1.5290 yOffset 0))
   (foreach itemData sortedItemNumbers
-    (setq itemNumber (car itemData))
-    (setq table (cadr itemData))
-    (setq rowHeight (caddr itemData))
-
-    ;; Set insertion point for each table based on its item number
-    (vla-put-InsertionPoint table (vlax-3d-point coord))
-
-    ;; Update y offset for the next table
+    (setq tablesList (cadr itemData))
+    (foreach table tablesList
+      (vla-put-InsertionPoint table (vlax-3d-point coord))
+    )
+    ;; Decrease yOffset by the row height of the first table in the group
+    (setq rowHeight (vla-getRowHeight (car tablesList) 0))
     (setq yOffset (- yOffset rowHeight))
-
-    ;; Update coordinate for the next table
-    (setq coord (list (car coord) yOffset (caddr coord)))
+    (setq coord (list 1.5290 yOffset 0))
   )
-
-  ;; Print message
   (princ "\nTables organized and placed.")
   (princ)
 )
