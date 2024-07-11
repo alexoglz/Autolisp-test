@@ -43,7 +43,7 @@
 (defun c:organizeTables ( / tables table itemNumbers yOffset coord)
   ;; Initialize variables
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
-  (setq itemNumbers (make-sparse))
+  (setq itemNumbers '())
   (setq yOffset 20.3848)
 
   ;; Iterate over all entities to collect item numbers and their corresponding row heights
