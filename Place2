@@ -1,92 +1,56 @@
-(defun c:placeTablesBasedOnItemNumbers (/ tables minItemNumber maxItemNumber itemHeights tableStartCoords)
-  (vl-load-com) ;; Load ActiveX support
-  
-  (setq tables (vla-get-ActiveDocument (vlax-get-acad-object))) ;; Get all tables in the active document
-  (setq minItemNumber nil)
-  (setq maxItemNumber nil)
-  (setq itemHeights (vlax-make-safearray vlax-vbDouble '(0))) ;; Safe array to store item heights
-  (setq tableStartCoords (vlax-make-safearray vlax-vbDouble '(0 2))) ;; Safe array to store table start coordinates
-  
-  ;; Loop through all tables to gather item numbers and row heights
-  (vlax-for tbl tables
-    (if (= "AcDbTable" (vla-get-objectname tbl)) ;; Check if entity is a table
+(defun c:organizeTables (/ tables itemNumbers sortedItemNumbers rowCount colCount yOffset coord)
+
+  ;; Initialize variables
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (setq itemNumbers '())
+  (setq yOffset 20.3848) ;; Initial y offset
+
+  ;; Iterate over all tables to collect item numbers and row heights
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
       (progn
-        (setq rowCount (vla-get-Rows tbl))
-        (setq i 0)
-        
-        ;; Iterate through each row of the table
-        (while (< i rowCount)
-          (setq cellContent (vla-getText tbl i 0)) ;; Get text content of the cell
-          (setq unformattedContent (strcase (LM:UnFormat cellContent nil))) ;; Unformat cell content
-          
-          (if (and unformattedContent (/= unformattedContent ""))
-            (progn
-              (setq itemNumber (atoi unformattedContent)) ;; Convert to integer
-              (setq currentHeight (vla-getRowHeight tbl i)) ;; Get current row height
-              
-              ;; Determine min and max item numbers
-              (if (or (null minItemNumber) (< itemNumber minItemNumber))
-                (setq minItemNumber itemNumber))
-              (if (or (null maxItemNumber) (> itemNumber maxItemNumber))
-                (setq maxItemNumber itemNumber))
-              
-              ;; Store item height in safe array
-              (setq itemHeights (vlax-safearray-put itemHeights (vlax-safearray-get-u-bound itemHeights 1) currentHeight))
-            )
-          )
-          
-          (setq i (1+ i)) ;; Increment row counter
-        )
-      )
-    )
-  )
-  
-  ;; Initialize starting coordinates for tables
-  (setq tableStartCoord (list 10.0 10.0 0.0)) ;; Initial coordinate
-  (setq rowCount (vlax-safearray-get-U-Bound itemHeights 1)) ;; Number of item heights
-  
-  ;; Assign coordinates based on item heights
-  (setq i 0)
-  (while (< i rowCount)
-    (setq thisTableHeight (vlax-safearray-get itemHeights i))
-    (if (and thisTableHeight (vlax-safearray-get tableStartCoords 1))
-      (setq tableStartCoords (vlax-safearray-put tableStartCoords (vlax-safearray-get-u-bound tableStartCoords 1) thisTableHeight))
-    )
-    (setq tableStartCoord (list (car tableStartCoord) (- (cadr tableStartCoord) (vla-safearray-get itemHeights i)) (cadar tableStartCoord)))
-    (setq i (1+ i)) ;; Increment index
-  )
-  
-  ;; Place tables based on their starting item number
-  (vlax-for tbl tables
-    (if (= "AcDbTable" (vla-get-objectname tbl)) ;; Check if entity is a table
-      (progn
-        (setq rowCount (vla-get-Rows tbl))
-        (setq cellContent (vla-getText tbl 0 0))
+        (setq table ent)
+        (setq rowCount (vla-get-Rows table))
+        (setq colCount (vla-get-Columns table))
+
+        ;; Get the item number and row height of the first row in each table
+        (setq cellContent (vla-getText table 0 0))
         (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
-        
-        ;; Check if the first cell contains a valid item number
-        (if (and unformattedContent (/= unformattedContent ""))
-          (progn
-            (setq startItemNumber (atoi unformattedContent)) ;; Convert to integer
-            
-            ;; Retrieve the starting coordinate for the table
-            (setq startCoord (vlax-safearray-get tableStartCoords (vlax-safearray-get-l-bound tableStartCoords 1) startItemNumber))
-            
-            ;; Set insertion point of the table based on the starting coordinate
-            (vla-put-InsertionPoint tbl (vlax-3d-point startCoord))
-            
-            ;; Example of placing the table at the insertion point
-            ;; Uncomment the line below to actually insert the table
-            ;(vla-put-InsertionPoint tbl (vlax-3d-point (cons 10.0 10.0 0.0)))
-          )
-        )
+        (setq itemNumber (atoi unformattedContent))
+        (setq rowHeight (vla-getRowHeight table 0))
+
+        ;; Store the item number, table object, and row height
+        (setq itemNumbers (cons (list itemNumber table rowHeight) itemNumbers))
       )
     )
   )
-  
-  (princ "\nTables placed based on item numbers.")
+
+  ;; Sort item numbers by ascending item number
+  (setq sortedItemNumbers (vl-sort itemNumbers '(lambda (a b) (< (car a) (car b)))))
+
+  ;; Initialize the starting coordinate based on the smallest item number
+  (setq coord (list 1.5290 yOffset 0))
+
+  ;; Place tables based on sorted item numbers
+  (foreach itemData sortedItemNumbers
+    (setq itemNumber (car itemData))
+    (setq table (cadr itemData))
+    (setq rowHeight (caddr itemData))
+
+    ;; Set insertion point for each table based on its item number
+    (vla-put-InsertionPoint table (vlax-3d-point coord))
+
+    ;; Update y offset for the next table
+    (setq yOffset (- yOffset rowHeight))
+
+    ;; Update coordinate for the next table
+    (setq coord (list (car coord) yOffset (caddr coord)))
+  )
+
+  ;; Print message
+  (princ "\nTables organized and placed.")
   (princ)
 )
 
-(princ "\nType placeTablesBasedOnItemNumbers to execute the command.\n")
+(princ "\nType organizeTables to organize and place the tables.\n")
 (princ)
