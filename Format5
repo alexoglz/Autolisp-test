@@ -1,0 +1,205 @@
+(vl-load-com)
+
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun c:adjustRowsAndFormat ( / minItemNumber maxItemNumber maxHeight tables table rowCount colCount i row currentHeight cellContent unformattedContent textHeight verticalMargin horizontalMargin minRowHeight)
+  ;; Initialize the minimum and maximum item numbers
+  (setq minItemNumber nil)
+  (setq maxItemNumber nil)
+  
+  ;; Initialize the maximum height
+  (setq maxHeight 0)
+
+  ;; Modify the following variables to change text height and cell margins
+  (setq textHeight 0.1389) ;; Set the text height for table cells
+  (setq verticalMargin 0.06) ;; Set the vertical margin for table cells
+  (setq horizontalMargin 0.06) ;; Set the horizontal margin for table cells
+  
+  (setq minRowHeight 0) ;; Initialize variable for minimum row height
+
+  ;; Get all entities in the drawing
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (print "\nRetrieved all entities in the drawing.")
+  
+  ;; Determine the minimum and maximum item numbers from all tables
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+      (progn
+        (setq table ent) ;; Set current entity to table
+        (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+        (setq colCount (vla-get-Columns table)) ;; Get the number of columns in the table
+        (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+
+        ;; Iterate over all rows to find min and max item numbers
+        (setq i 0)
+        (while (< i rowCount)
+          ;; Use vla-getText to get the cell content
+          (setq cellContent (vla-getText table i 0))
+          ;; Unformat the cell content for comparison
+          (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+          (if (and unformattedContent (not (eq unformattedContent "")))
+            (progn
+              (setq itemNumber (atoi unformattedContent)) ;; Convert cell content to integer
+              (if (or (not minItemNumber) (< itemNumber minItemNumber))
+                (setq minItemNumber itemNumber)) ;; Update minItemNumber if a smaller value is found
+              (if (or (not maxItemNumber) (> itemNumber maxItemNumber))
+                (setq maxItemNumber itemNumber)) ;; Update maxItemNumber if a larger value is found
+            )
+          )
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  ;; Format all tables
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+      (progn
+        (setq table ent) ;; Set current entity to table
+        (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+        (setq colCount (vla-get-Columns table)) ;; Get the number of columns in the table
+        (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+
+        ;; Iterate over all rows to set the format
+        (setq i 0)
+        (while (< i rowCount)
+          ;; Set the column widths
+          (vla-setcolumnwidth table 0 0.6415) ;; Set the first column width
+          (vla-setcolumnwidth table 1 2.1142) ;; Set the second column width
+          (vla-setcolumnwidth table 2 2.6856) ;; Set the third column width
+          (vla-setcolumnwidth table 3 2.5281) ;; Set the fourth column width
+          (vla-setcolumnwidth table 4 0.9262) ;; Set the fifth column width
+          (vla-setcolumnwidth table 5 6.5582) ;; Set the sixth column width
+          
+          ;; Set the text height and cell margins
+          (vla-settextheight table acDataRow textHeight) ;; Set the text height for data rows
+          (vla-put-VertCellMargin table verticalMargin) ;; Set the vertical margin for cells
+          (vla-put-HorzCellMargin table horizontalMargin) ;; Set the horizontal margin for cells
+          
+          (setq minRowHeight (vla-getminimumrowheight table i)) ;; Get the minimum row height based on the text
+          (vla-setRowHeight table i minRowHeight) ;; Set the minimum row height for the current row
+          (vla-setcellalignment table i 0 acMiddleCenter) ;; Set alignment for the first column
+          (vla-setcellalignment table i 1 acMiddleLeft) ;; Set alignment for the second column
+          (vla-setcellalignment table i 2 acMiddleLeft) ;; Set alignment for the third column
+          (vla-setcellalignment table i 3 acMiddleLeft) ;; Set alignment for the fourth column
+          (vla-setcellalignment table i 4 acMiddleCenter) ;; Set alignment for the fifth column
+          (vla-setcellalignment table i 5 acMiddleLeft) ;; Set alignment for the sixth column
+    
+          (setq i (+ i 1)) ;; Increment row counter
+        ) ;; Close while loop
+      )
+    )
+  )
+  
+  ;; Adjust row heights for each item number
+  (setq itemNumber minItemNumber)
+  (while (<= itemNumber maxItemNumber)
+    ;; Iterate over all entities and filter the tables
+    (vlax-for ent tables
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+        (progn
+          (setq table ent) ;; Set current entity to table
+          (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+          (setq colCount (vla-get-Columns table)) ;; Get the number of columns in the table
+          (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
+
+          ;; Iterate over all rows to find the maximum height of the row with the specified item number
+          (setq i 0)
+          (while (< i rowCount)
+            ;; Use vla-getText to get the cell content
+            (setq cellContent (vla-getText table i 0))
+            ;; Unformat the cell content for comparison
+            (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+            (print (strcat "Checking row " (itoa i) " for item number. Unformatted cell content: " unformattedContent))
+            (if (= unformattedContent (itoa itemNumber))
+              (progn
+                (setq currentHeight (vla-getRowHeight table i)) ;; Get the current height of the row
+                (if (> currentHeight maxHeight)
+                  (setq maxHeight currentHeight) ;; Update maxHeight if a larger value is found
+                )
+              )
+            )
+            (setq i (1+ i)) ;; Increment row counter
+          )
+        )
+      )
+    )
+
+    (print (strcat "Maximum height found: " (rtos maxHeight 2 4)))
+
+    ;; Adjust the row heights
+    (vlax-for ent tables
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+        (progn
+          (setq table ent) ;; Set current entity to table
+          (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+          (setq colCount (vla-get-Columns table)) ;; Get the number of columns in the table
+
+          ;; Iterate over all rows to adjust the height
+          (setq i 0)
+          (while (< i rowCount)
+            ;; Use vla-getText to get the cell content
+            (setq cellContent (vla-getText table i 0))
+            ;; Unformat the cell content for comparison
+            (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+            (if (= unformattedContent (itoa itemNumber))
+              (progn
+                (vla-setRowHeight table i maxHeight) ;; Set the row height to maxHeight for rows with matching item number
+                (print (strcat "Adjusting height of row " (itoa i) " in table."))
+              )
+            )
+            (setq i (1+ i)) ;; Increment row counter
+          )
+        )
+      )
+    )
+    (setq maxHeight 0) ;; Reset maxHeight for the next item number
+    (setq itemNumber (+ itemNumber 1)) ;; Increment item number
+  ) 
+  (princ "\nRow heights adjusted and tables formatted.")
+  (princ)
+)
+
+(princ "\nType adjustRowsAndFormat to adjust row heights and format tables.\n")
+(princ)
