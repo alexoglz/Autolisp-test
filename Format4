@@ -42,7 +42,11 @@
   )
 )
 
-(defun c:adjustRowsAndFormat ( / minItemNumber maxItemNumber maxHeight tables table rowCount colCount i row currentHeight cellContent unformattedContent textHeight verticalMargin horizontalMargin minRowHeight itemNumber)
+(defun c:adjustRowsAndFormat ( / minItemNumber maxItemNumber maxHeight tables table rowCount colCount i row currentHeight cellContent unformattedContent textHeight verticalMargin horizontalMargin minRowHeight)
+  ;; Initialize the minimum and maximum item numbers
+  (setq minItemNumber nil)
+  (setq maxItemNumber nil)
+  
   ;; Initialize the maximum height
   (setq maxHeight 0)
 
@@ -57,29 +61,28 @@
   (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
   (print "\nRetrieved all entities in the drawing.")
   
-  ;; Initialize min and max item numbers
-  (setq minItemNumber nil)
-  (setq maxItemNumber nil)
-  
-  ;; Determine min and max item numbers
+  ;; Determine the minimum and maximum item numbers from all tables
   (vlax-for ent tables
     (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
       (progn
         (setq table ent)
-        (setq rowCount (vla-get-Rows table))
+        (setq rowCount (vla-get-Rows table)) ;; vla-get-rows returns the number of rows and sets it to rowCount
+        (setq colCount (vla-get-Columns table))
+        (print (strcat "Processing table with " (itoa rowCount) " rows and " (itoa colCount) " columns."))
 
+        ;; Iterate over all rows to find min and max item numbers
         (setq i 0)
         (while (< i rowCount)
           ;; Use vla-getText to get the cell content
           (setq cellContent (vla-getText table i 0))
           ;; Unformat the cell content for comparison
           (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
-          (if (not (wcmatch unformattedContent "*[^0-9]*")) ;; Check if the content is numeric
+          (if (and unformattedContent (not (eq unformattedContent "")))
             (progn
               (setq itemNumber (atoi unformattedContent))
-              (if (or (null minItemNumber) (< itemNumber minItemNumber))
+              (if (or (not minItemNumber) (< itemNumber minItemNumber))
                 (setq minItemNumber itemNumber))
-              (if (or (null maxItemNumber) (> itemNumber maxItemNumber))
+              (if (or (not maxItemNumber) (> itemNumber maxItemNumber))
                 (setq maxItemNumber itemNumber))
             )
           )
@@ -88,11 +91,7 @@
       )
     )
   )
-  
-  ;; Print found item numbers
-  (print (strcat "\nMin item number found: " (itoa minItemNumber)))
-  (print (strcat "\nMax item number found: " (itoa maxItemNumber)))
-  
+
   ;; Format all tables
   (vlax-for ent tables
     (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
@@ -196,12 +195,11 @@
       )
     )
     (setq maxHeight 0)
-    (setq itemNumber (+ itemNumber 1))
-  )
-
+    (setq itemNumber (+ itemNumber 1)) 
+  ) 
   (princ "\nRow heights adjusted and tables formatted.")
   (princ)
 )
 
-(princ "\nType adjustRowsAndFormat to format the tables and adjust the row heights for all item numbers.\n")
+(princ "\nType adjustRowsAndFormat to adjust row heights and format tables.\n")
 (princ)
