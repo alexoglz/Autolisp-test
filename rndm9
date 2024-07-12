@@ -137,7 +137,7 @@
     (foreach item sortedItemData
       (if (equal (car item) cellContent)
         (progn
-          (if (member (list cellContent (cdr item)) doNotPlaceList)
+          (if (assoc cellContent doNotPlaceList)
             (setq place-status "DO NOT PLACE"))
           (setq targetCoord (if (equal place-status "DO NOT PLACE")
                                (cdr (assoc cellContent doNotPlaceList))
