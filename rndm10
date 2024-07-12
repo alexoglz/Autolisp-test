@@ -78,6 +78,14 @@
     (setq i (1+ i)))
   totalHeight)
 
+(defun filter (pred lst)
+  "Filter a list based on a predicate function"
+  (setq result '())
+  (foreach el lst
+    (if (funcall pred el)
+      (setq result (append result (list el)))))
+  result)
+
 (defun place-tables (tables coord)
   "Place all tables starting with the same item number at the given coordinate"
   (foreach table tables
