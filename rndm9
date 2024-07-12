@@ -144,8 +144,8 @@
                                (cdr (assoc cellContent sortedItemData))))
           (if targetCoord
             (progn
-              (move-table-to-coordinate table (list (car targetCoord) (cadr targetCoord) (caddr current-coord)))
-              (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n")))
+              (move-table-to-coordinate table (list (car targetCoord) (cadr targetCoord) (caddr start-coord)))
+              (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr start-coord) 2 4) "\n")))
             (princ (strcat "Table with item number " cellContent " not moved. No valid coordinate found.\n")))
           (return))))))
 
@@ -168,6 +168,7 @@
   (princ "\nItem numbers and row heights have been processed.")
   (princ)
 )
+
 
 
 
