@@ -151,3 +151,4 @@
 
 (princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
 (princ)
+
