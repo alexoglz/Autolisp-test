@@ -145,7 +145,7 @@
           (if targetCoord
             (progn
               (setq targetCoord (cdr targetCoord))
-              (move-table-to-coordinate table targetCoord)
+              (move-table-to-coordinate table (list (car targetCoord) (cadr targetCoord) (caddr current-coord)))
               (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n")))
             (princ (strcat "Table with item number " cellContent " not moved. No valid coordinate found.\n")))
           (return))))))
@@ -157,7 +157,7 @@
   ;; Obtener todas las entidades en el dibujo
   (setq modelSpace (vla-get-ModelSpace doc))
   (vlax-for ent modelSpace
-    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+    (if (eq (vla-get-ObjectName ent) "AcDbTable")
       (setq tables (cons ent tables))))
 
   ;; Obtener los números de item y alturas de fila
