@@ -62,7 +62,7 @@
   (setq index 1)
   (setq current-coord start-coord)
   (foreach item sortedItemData
-    (princ (strcat (itoa index) ". " (car item) " " (rtos (cdr item) 2 2) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ")\n"))
+    (princ (strcat (itoa index) ". " (car item) " " (rtos (cdr item) 2 4) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ")\n"))
     (setq current-coord (list (car current-coord) (- (cadr current-coord) (cdr item)) (caddr current-coord)))
     (setq index (1+ index))))
 
