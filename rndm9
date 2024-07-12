@@ -111,7 +111,7 @@
     (progn
       (princ "\nDO NOT PLACE List:\n")
       (setq start-coord-doNotPlace (list 17.5948 20.4285 0.0000))
-      (setq current-coord start-coord-doNotPlace)
+      (setq current-coord-doNotPlace start-coord-doNotPlace)
       (setq index 1)
       (setq firstItemNumber (car firstDoNotPlace))
       (setq remainingItems '())
@@ -123,9 +123,9 @@
       (foreach item remainingItems
         (setq itemNumber (car item))
         (setq rowHeight (cdr item))
-        (setq nextCoord (list (car current-coord) (- (cadr current-coord) rowHeight) (caddr current-coord)))
-        (princ (strcat (itoa index) ". " itemNumber " " (rtos rowHeight 2 4) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ")\n"))
-        (setq current-coord nextCoord)
+        (setq nextCoord (list (car current-coord-doNotPlace) (- (cadr current-coord-doNotPlace) rowHeight) (caddr current-coord-doNotPlace)))
+        (princ (strcat (itoa index) ". " itemNumber " " (rtos rowHeight 2 4) " (" (rtos (car current-coord-doNotPlace) 2 4) ", " (rtos (cadr current-coord-doNotPlace) 2 4) ", " (rtos (caddr current-coord-doNotPlace) 2 4) ")\n"))
+        (setq current-coord-doNotPlace nextCoord)
         (setq index (1+ index)))))
 
   ;; Mover las tablas a las coordenadas correspondientes
@@ -133,18 +133,22 @@
     (setq rowCount (vla-get-Rows table))
     (setq cellContent (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
     (setq targetCoord nil)
+    (setq place-status "PLACE")
     (foreach item sortedItemData
       (if (equal (car item) cellContent)
         (progn
-          (setq place-status (if (member (list cellContent (cdr item)) doNotPlaceList) "DO NOT PLACE" "PLACE"))
+          (if (member (list cellContent (cdr item)) doNotPlaceList)
+            (setq place-status "DO NOT PLACE"))
           (setq targetCoord (if (equal place-status "DO NOT PLACE")
                                (assoc cellContent remainingItems)
                                (assoc cellContent sortedItemData)))
-          (return))))
-    (if targetCoord
-      (progn
-        (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car (cdr targetCoord)) 2 4) ", " (rtos (cadr (cdr targetCoord)) 2 4) ", " (rtos (caddr (cdr targetCoord)) 2 4) "\n"))
-        (move-table-to-coordinate table (cdr targetCoord))))))
+          (if targetCoord
+            (progn
+              (setq targetCoord (cdr targetCoord))
+              (move-table-to-coordinate table targetCoord)
+              (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n")))
+            (princ (strcat "Table with item number " cellContent " not moved. No valid coordinate found.\n")))
+          (return))))))
 
 (defun C:printItemNumbers ()
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
@@ -154,9 +158,9 @@
   (setq modelSpace (vla-get-ModelSpace doc))
   (vlax-for ent modelSpace
     (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
-      (setq tables (append tables (list ent)))))
-  
-  ;; Obtener y ordenar los números de item y alturas de fila
+      (setq tables (cons ent tables))))
+
+  ;; Obtener los números de item y alturas de fila
   (setq itemData (get-item-numbers-and-heights tables))
   (setq start-coord (list 1.4673 20.9112 0.0000))
   
@@ -166,4 +170,5 @@
   (princ "\nItem numbers and row heights have been processed.")
   (princ)
 )
+
 
