@@ -81,7 +81,6 @@
   (setq index 1)
   (setq current-coord start-coord)
   (setq doNotPlaceList '())
-  (setq startIndex 0)
   (foreach item sortedItemData
     (setq itemNumber (car item))
     (setq rowHeight (cdr item))
@@ -95,21 +94,18 @@
             place-status "PLACE"))
     (princ (strcat (itoa index) ". " itemNumber " " (rtos rowHeight 2 4) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ") (" (if (numberp totalHeight) (strcat (rtos (car adjustedCoord) 2 4) ", " (rtos (cadr adjustedCoord) 2 4) ", " (rtos (caddr adjustedCoord) 2 4)) adjustedCoord) ") " place-status "\n"))
     (if (equal place-status "DO NOT PLACE")
-      (progn
-        (setq doNotPlaceList (append doNotPlaceList (list (list itemNumber rowHeight))))
-        (if (= startIndex 0)
-          (setq startIndex index))))
+      (setq doNotPlaceList (append doNotPlaceList (list item))))
     (setq current-coord nextCoord)
     (setq index (1+ index)))
   
   ;; Imprimir la segunda lista de "DO NOT PLACE"
-  (if (> startIndex 0)
+  (if doNotPlaceList
     (progn
       (princ "\nDO NOT PLACE List:\n")
       (setq start-coord-doNotPlace (list 17.5948 20.4285 0.0000))
       (setq current-coord start-coord-doNotPlace)
       (setq index 1)
-      (foreach item (nthcdr (1- startIndex) sortedItemData)
+      (foreach item doNotPlaceList
         (setq itemNumber (car item))
         (setq rowHeight (cdr item))
         (setq nextCoord (list (car current-coord) (- (cadr current-coord) rowHeight) (caddr current-coord)))
@@ -136,6 +132,10 @@
   ;; Imprimir los números de item, alturas de fila y coordenadas
   (print-item-numbers-and-heights itemData tables start-coord)
   (princ))
+
+(princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
+(princ)
+
 
 (princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
 (princ)
