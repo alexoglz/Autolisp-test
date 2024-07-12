@@ -136,14 +136,15 @@
     (foreach item sortedItemData
       (if (equal (car item) cellContent)
         (progn
-          (if (member (list cellContent (cdr item)) doNotPlaceList)
-            (setq targetCoord (nth 2 (nth (1- (length remainingItems)) remainingItems)))
-            (setq targetCoord (nth 2 (nth (1- (length sortedItemData)) sortedItemData))))
+          (setq place-status (if (member (list cellContent (cdr item)) doNotPlaceList) "DO NOT PLACE" "PLACE"))
+          (setq targetCoord (if (equal place-status "DO NOT PLACE")
+                               (assoc cellContent remainingItems)
+                               (assoc cellContent sortedItemData)))
           (return))))
     (if targetCoord
       (progn
-        (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n"))
-        (move-table-to-coordinate table targetCoord)))))
+        (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car (cdr targetCoord)) 2 4) ", " (rtos (cadr (cdr targetCoord)) 2 4) ", " (rtos (caddr (cdr targetCoord)) 2 4) "\n"))
+        (move-table-to-coordinate table (cdr targetCoord))))))
 
 (defun C:printItemNumbers ()
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
@@ -157,8 +158,6 @@
   
   ;; Obtener y ordenar los números de item y alturas de fila
   (setq itemData (get-item-numbers-and-heights tables))
-  
-  ;; Coordenada inicial, edita aquí según sea necesario
   (setq start-coord (list 1.4673 20.9112 0.0000))
   
   ;; Imprimir números de item y alturas de fila
