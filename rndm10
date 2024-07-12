@@ -57,21 +57,21 @@
   itemData)
 
 (defun find-table-with-most-rows (tables itemNumber)
-  "Find the table with the most rows starting with the given item number"
+  "Find the table with the most rows starting with a given item number"
   (setq maxRows 0)
-  (setq targetTable nil)
+  (setq selectedTable nil)
   (foreach table tables
-    (setq rowCount (vla-get-Rows table))
     (setq cellContent (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
-    (if (and (= cellContent itemNumber) (> rowCount maxRows))
-      (setq maxRows rowCount
-            targetTable table)))
-  targetTable)
+    (if (and (= cellContent itemNumber) (> (vla-get-Rows table) maxRows))
+      (progn
+        (setq maxRows (vla-get-Rows table))
+        (setq selectedTable table))))
+  selectedTable)
 
 (defun get-total-row-height (table)
-  "Get the total row height of the given table"
-  (setq rowCount (vla-get-Rows table))
+  "Get the total row height of a table"
   (setq totalHeight 0)
+  (setq rowCount (vla-get-Rows table))
   (setq i 0)
   (while (< i rowCount)
     (setq totalHeight (+ totalHeight (vla-getRowHeight table i)))
@@ -79,52 +79,53 @@
   totalHeight)
 
 (defun filter-tables (tables itemNumber)
-  "Filter tables that start with the given item number"
-  (setq result '())
+  "Filter tables that start with a given item number"
+  (setq filteredTables '())
   (foreach table tables
     (setq cellContent (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
     (if (= cellContent itemNumber)
-      (setq result (append result (list table)))))
-  result)
+      (setq filteredTables (append filteredTables (list table)))))
+  filteredTables)
 
 (defun place-tables (tables coord)
-  "Place all tables starting with the same item number at the given coordinate"
+  "Place the tables at the specified coordinate"
   (foreach table tables
-    (vla-put-InsertionPoint table (vlax-3d-point coord))))
+    (princ (strcat "\nPlacing table starting with " (vla-getText table 0 0) " at " (vl-princ-to-string coord)))
+    (vla-put-InsertionPoint table (vlax-3d-point coord))
+    (princ "\nTable placed.\n")))
 
-(defun process-item-list (itemData tables startCoord yoffset limitOffset)
-  "Process the item list and place the tables accordingly"
+(defun process-item-list (tables itemData startCoord startYOffset threshold)
+  (setq currentYOffset startYOffset)
   (setq currentCoord startCoord)
-  (setq currentOffset yoffset)
   (setq doNotPlaceList '())
   (foreach item itemData
     (setq itemNumber (car item))
+    (setq rowHeight (cdr item))
     (setq table (find-table-with-most-rows tables itemNumber))
-    (if table
-      (setq rowAddition (get-total-row-height table))
-      (setq rowAddition (cdr item)))
-    (setq currentOffset (- currentOffset rowAddition))
-    (if (> currentOffset limitOffset)
+    (setq rowAddition (if table (get-total-row-height table) 0))
+    (if (not table)
+      (setq currentYOffset (- currentYOffset rowHeight))
       (progn
-        (setq currentOffset (+ currentOffset rowAddition))
-        (place-tables (filter-tables tables itemNumber) currentCoord)
-        (setq currentOffset (+ currentOffset (cdr item))))
-      (progn
-        (setq doNotPlaceList (append doNotPlaceList (list item)))
-        (setq firstDoNotPlace item)
-        (return))))
+        (setq currentYOffset (- currentYOffset rowAddition))
+        (if (> currentYOffset threshold)
+          (progn
+            (setq currentYOffset (+ currentYOffset rowAddition))
+            (place-tables (filter-tables tables itemNumber) currentCoord)
+            (setq currentYOffset (+ currentYOffset rowHeight)))
+          (progn
+            (setq doNotPlaceList (append doNotPlaceList (list item)))
+            (return doNotPlaceList))))))
   doNotPlaceList)
 
-(defun process-do-not-place-list (doNotPlaceList tables startCoord yoffset)
-  "Process the DO NOT PLACE list and place the tables accordingly"
+(defun process-do-not-place-list (tables itemData startCoord startYOffset)
+  (setq currentYOffset startYOffset)
   (setq currentCoord startCoord)
-  (setq currentOffset yoffset)
-  (foreach item doNotPlaceList
+  (foreach item itemData
     (setq itemNumber (car item))
     (setq rowHeight (cdr item))
-    (setq currentOffset (- currentOffset rowHeight))
     (place-tables (filter-tables tables itemNumber) currentCoord)
-    (setq currentCoord (list (car currentCoord) currentOffset (caddr currentCoord)))))
+    (setq currentYOffset (- currentYOffset rowHeight))
+    (setq currentCoord (list (car currentCoord) currentYOffset (caddr currentCoord)))))
 
 (defun C:PlaceTables ()
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
@@ -138,22 +139,21 @@
   
   ;; Obtener y ordenar los números de item y alturas de fila
   (setq itemData (get-item-numbers-and-heights tables))
+  (setq sortedItemData (vl-sort itemData '(lambda (a b) (< (atoi (car a)) (atoi (car b))))))
   
-  ;; Coordenada inicial
+  ;; Coordenadas iniciales
   (setq startCoord1 (list 1.4673 20.9112 0.0000))
   (setq startCoord2 (list 17.5948 20.4285 0.0000))
   
-  ;; Procesar la primera lista
-  (setq doNotPlaceList (process-item-list itemData tables startCoord1 20.9112 3.8))
+  ;; Procesar la primera lista de items
+  (setq doNotPlaceList (process-item-list tables sortedItemData startCoord1 20.9112 3.8))
   
   ;; Procesar la lista de "DO NOT PLACE"
-  (process-do-not-place-list doNotPlaceList tables startCoord2 20.4285)
-  (princ))
+  (when doNotPlaceList
+    (process-do-not-place-list tables doNotPlaceList startCoord2 20.4285))
+  (princ "\nFinished processing tables.\n"))
 
-(princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
+(princ "\nType 'PlaceTables' to start placing tables.\n")
 (princ)
 
-
-(princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
-(princ)
 
