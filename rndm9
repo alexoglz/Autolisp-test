@@ -100,7 +100,7 @@
     (princ (strcat (itoa index) ". " itemNumber " " (rtos rowHeight 2 4) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ") (" (if (numberp totalHeight) (strcat (rtos (car adjustedCoord) 2 4) ", " (rtos (cadr adjustedCoord) 2 4) ", " (rtos (caddr adjustedCoord) 2 4)) adjustedCoord) ") " place-status "\n"))
     (if (equal place-status "DO NOT PLACE")
       (progn
-        (setq doNotPlaceList (append doNotPlaceList (list item)))
+        (setq doNotPlaceList (append doNotPlaceList (list (list itemNumber rowHeight))))
         (if (not firstDoNotPlace)
           (setq firstDoNotPlace item))))
     (setq current-coord nextCoord)
@@ -136,12 +136,14 @@
     (foreach item sortedItemData
       (if (equal (car item) cellContent)
         (progn
-          (if (member item doNotPlaceList)
-            (setq targetCoord (nth 2 (nth (1- (position item remainingItems)) remainingItems)))
-            (setq targetCoord (nth 2 (nth (1- (position item sortedItemData)) sortedItemData))))
+          (if (member (list cellContent (cdr item)) doNotPlaceList)
+            (setq targetCoord (nth 2 (nth (1- (length remainingItems)) remainingItems)))
+            (setq targetCoord (nth 2 (nth (1- (length sortedItemData)) sortedItemData))))
           (return))))
     (if targetCoord
-      (move-table-to-coordinate table targetCoord))))
+      (progn
+        (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n"))
+        (move-table-to-coordinate table targetCoord)))))
 
 (defun C:printItemNumbers ()
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
@@ -159,9 +161,10 @@
   ;; Coordenada inicial, edita aquí según sea necesario
   (setq start-coord (list 1.4673 20.9112 0.0000))
   
-  ;; Imprimir los números de item, alturas de fila y coordenadas
+  ;; Imprimir números de item y alturas de fila
   (print-item-numbers-and-heights itemData tables start-coord)
-  (princ))
 
-(princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
-(princ)
+  (princ "\nItem numbers and row heights have been processed.")
+  (princ)
+)
+
