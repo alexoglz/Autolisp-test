@@ -117,3 +117,4 @@
 
 (princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
 (princ)
+
