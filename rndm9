@@ -151,12 +151,17 @@
 
 (defun C:printItemNumbers ()
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (setq selection (ssget "_X" '((0 . "ACAD_TABLE"))))
   (setq tables '())
-  
-  ;; Obtener todas las tablas del dibujo
-  (vlax-for ent (vla-get-ModelSpace doc)
-    (if (eq (vla-get-ObjectName ent) "AcDbTable")
-      (setq tables (cons ent tables))))
+  (if selection
+    (progn
+      (setq i 0)
+      (while (< i (sslength selection))
+        (setq ent (vlax-EName->VLA-Object (ssname selection i)))
+        (if (eq (vla-get-ObjectName ent) "AcDbTable")
+          (setq tables (cons ent tables)))
+        (setq i (1+ i))))
+    (princ "\nNo tables selected."))
   
   ;; Obtener los números de item y alturas de fila
   (setq itemData (get-item-numbers-and-heights tables))
@@ -168,6 +173,7 @@
   (princ "\nItem numbers and row heights have been processed.")
   (princ)
 )
+
 
 
 
