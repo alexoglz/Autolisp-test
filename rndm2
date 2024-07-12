@@ -1,0 +1,83 @@
+(vl-load-com)
+
+(defun LM:UnFormat (str mtx / _replace rx)
+  "Unformat a formatted string"
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun get-item-numbers-and-heights (tables)
+  "Get all unique item numbers with their row heights from the first column of tables"
+  (setq itemData '())
+  (foreach table tables
+    (setq rowCount (vla-get-Rows table))
+    (setq i 0)
+    (while (< i rowCount)
+      (setq cellContent (strcase (LM:UnFormat (vla-getText table i 0) nil)))
+      (setq rowHeight (vla-getRowHeight table i))
+      (if (not (assoc cellContent itemData))
+        (setq itemData (append itemData (list (cons cellContent rowHeight)))))
+      (setq i (1+ i))))
+  itemData)
+
+(defun print-item-numbers-and-heights (itemData)
+  "Print item numbers with their row heights in order"
+  (setq sortedItemData (vl-sort itemData '(lambda (a b) (< (atoi (car a)) (atoi (car b))))))
+  (setq index 1)
+  (foreach item sortedItemData
+    (print (strcat (itoa index) ". " (car item) " " (rtos (cdr item) 2 2)))
+    (setq index (1+ index))))
+
+(defun C:printItemNumbers ()
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (setq tables '())
+  
+  ;; Obtener todas las entidades en el dibujo
+  (setq modelSpace (vla-get-ModelSpace doc))
+  (vlax-for ent modelSpace
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (setq tables (append tables (list ent)))))
+  
+  ;; Obtener y ordenar los números de item y alturas de fila
+  (setq itemData (get-item-numbers-and-heights(tables)))
+  (print-item-numbers-and-heights itemData)
+  (princ))
+
+(princ "\nType 'printItemNumbers' to list item numbers with their row heights.\n")
+(princ)
