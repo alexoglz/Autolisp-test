@@ -1,0 +1,145 @@
+(vl-load-com)
+
+(defun LM:UnFormat (str mtx / _replace rx)
+  "Unformat a formatted string"
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+(defun get-item-numbers-and-heights (tables)
+  "Get all unique item numbers with their row heights from the first column of tables"
+  (setq itemData '())
+  (foreach table tables
+    (setq rowCount (vla-get-Rows table))
+    (setq i 0)
+    (while (< i rowCount)
+      (setq cellContent (strcase (LM:UnFormat (vla-getText table i 0) nil)))
+      (setq rowHeight (vla-getRowHeight table i))
+      (if (not (assoc cellContent itemData))
+        (setq itemData (append itemData (list (cons cellContent rowHeight)))))
+      (setq i (1+ i))))
+  itemData)
+
+(defun find-table-with-most-rows (tables itemNumber)
+  "Find the table with the most rows starting with the given item number"
+  (setq maxRows 0)
+  (setq targetTable nil)
+  (foreach table tables
+    (setq rowCount (vla-get-Rows table))
+    (setq cellContent (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
+    (if (and (= cellContent itemNumber) (> rowCount maxRows))
+      (setq maxRows rowCount
+            targetTable table)))
+  targetTable)
+
+(defun get-total-row-height (table)
+  "Get the total row height of the given table"
+  (setq rowCount (vla-get-Rows table))
+  (setq totalHeight 0)
+  (setq i 0)
+  (while (< i rowCount)
+    (setq totalHeight (+ totalHeight (vla-getRowHeight table i)))
+    (setq i (1+ i)))
+  totalHeight)
+
+(defun place-tables (tables coord)
+  "Place all tables starting with the same item number at the given coordinate"
+  (foreach table tables
+    (vla-put-InsertionPoint table (vlax-3d-point coord))))
+
+(defun process-item-list (itemData tables startCoord yoffset limitOffset)
+  "Process the item list and place the tables accordingly"
+  (setq currentCoord startCoord)
+  (setq currentOffset yoffset)
+  (setq doNotPlaceList '())
+  (foreach item itemData
+    (setq itemNumber (car item))
+    (setq table (find-table-with-most-rows tables itemNumber))
+    (if table
+      (setq rowAddition (get-total-row-height table))
+      (setq rowAddition (cdr item)))
+    (setq currentOffset (- currentOffset rowAddition))
+    (if (> currentOffset limitOffset)
+      (progn
+        (setq currentOffset (+ currentOffset rowAddition))
+        (place-tables (filter (lambda (t) (= (strcase (LM:UnFormat (vla-getText t 0 0) nil)) itemNumber)) tables) currentCoord)
+        (setq currentOffset (+ currentOffset (cdr item))))
+      (progn
+        (setq doNotPlaceList (append doNotPlaceList (list item)))
+        (setq firstDoNotPlace item)
+        (return))))
+  doNotPlaceList)
+
+(defun process-do-not-place-list (doNotPlaceList tables startCoord yoffset)
+  "Process the DO NOT PLACE list and place the tables accordingly"
+  (setq currentCoord startCoord)
+  (setq currentOffset yoffset)
+  (foreach item doNotPlaceList
+    (setq itemNumber (car item))
+    (setq rowHeight (cdr item))
+    (setq currentOffset (- currentOffset rowHeight))
+    (place-tables (filter (lambda (t) (= (strcase (LM:UnFormat (vla-getText t 0 0) nil)) itemNumber)) tables) currentCoord)
+    (setq currentCoord (list (car currentCoord) currentOffset (caddr currentCoord)))))
+
+(defun C:PlaceTables ()
+  (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+  (setq tables '())
+  
+  ;; Obtener todas las entidades en el dibujo
+  (setq modelSpace (vla-get-ModelSpace doc))
+  (vlax-for ent modelSpace
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+      (setq tables (append tables (list ent)))))
+  
+  ;; Obtener y ordenar los números de item y alturas de fila
+  (setq itemData (get-item-numbers-and-heights tables))
+  
+  ;; Coordenada inicial
+  (setq startCoord1 (list 1.4673 20.9112 0.0000))
+  (setq startCoord2 (list 17.5948 20.4285 0.0000))
+  
+  ;; Procesar la primera lista
+  (setq doNotPlaceList (process-item-list itemData tables startCoord1 20.9112 3.8))
+  
+  ;; Procesar la lista de "DO NOT PLACE"
+  (process-do-not-place-list doNotPlaceList tables startCoord2 20.4285)
+  (princ))
+
+(princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
+(princ)
