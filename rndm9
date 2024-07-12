@@ -100,7 +100,7 @@
     (princ (strcat (itoa index) ". " itemNumber " " (rtos rowHeight 2 4) " (" (rtos (car current-coord) 2 4) ", " (rtos (cadr current-coord) 2 4) ", " (rtos (caddr current-coord) 2 4) ") (" (if (numberp totalHeight) (strcat (rtos (car adjustedCoord) 2 4) ", " (rtos (cadr adjustedCoord) 2 4) ", " (rtos (caddr adjustedCoord) 2 4)) adjustedCoord) ") " place-status "\n"))
     (if (equal place-status "DO NOT PLACE")
       (progn
-        (setq doNotPlaceList (append doNotPlaceList (list (list itemNumber rowHeight))))
+        (setq doNotPlaceList (append doNotPlaceList (list (list itemNumber rowHeight adjustedCoord))))
         (if (not firstDoNotPlace)
           (setq firstDoNotPlace item))))
     (setq current-coord nextCoord)
@@ -140,11 +140,10 @@
           (if (member (list cellContent (cdr item)) doNotPlaceList)
             (setq place-status "DO NOT PLACE"))
           (setq targetCoord (if (equal place-status "DO NOT PLACE")
-                               (assoc cellContent remainingItems)
-                               (assoc cellContent sortedItemData)))
+                               (cdr (assoc cellContent doNotPlaceList))
+                               (cdr (assoc cellContent sortedItemData))))
           (if targetCoord
             (progn
-              (setq targetCoord (cdr targetCoord))
               (move-table-to-coordinate table (list (car targetCoord) (cadr targetCoord) (caddr current-coord)))
               (princ (strcat "Moving table with item number " cellContent " to coordinate: " (rtos (car targetCoord) 2 4) ", " (rtos (cadr targetCoord) 2 4) ", " (rtos (caddr targetCoord) 2 4) "\n")))
             (princ (strcat "Table with item number " cellContent " not moved. No valid coordinate found.\n")))
@@ -154,12 +153,11 @@
   (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
   (setq tables '())
   
-  ;; Obtener todas las entidades en el dibujo
-  (setq modelSpace (vla-get-ModelSpace doc))
-  (vlax-for ent modelSpace
+  ;; Obtener todas las tablas del dibujo
+  (vlax-for ent (vla-get-ModelSpace doc)
     (if (eq (vla-get-ObjectName ent) "AcDbTable")
       (setq tables (cons ent tables))))
-
+  
   ;; Obtener los números de item y alturas de fila
   (setq itemData (get-item-numbers-and-heights tables))
   (setq start-coord (list 1.4673 20.9112 0.0000))
@@ -170,5 +168,6 @@
   (princ "\nItem numbers and row heights have been processed.")
   (princ)
 )
+
 
 
