@@ -61,7 +61,7 @@
   (setq sortedItemData (vl-sort itemData '(lambda (a b) (< (atoi (car a)) (atoi (car b))))))
   (setq index 1)
   (foreach item sortedItemData
-    (print (strcat (itoa index) ". " (car item) " " (rtos (cdr item) 2 2)))
+    (princ (strcat (itoa index) ". " (car item) " " (rtos (cdr item) 2 2) "\n"))
     (setq index (1+ index))))
 
 (defun C:printItemNumbers ()
@@ -75,14 +75,10 @@
       (setq tables (append tables (list ent)))))
   
   ;; Obtener y ordenar los números de item y alturas de fila
-  (setq itemData (get-item-numbers-and-heights(tables)))
+  (setq itemData (get-item-numbers-and-heights tables))
   (print-item-numbers-and-heights itemData)
   (princ))
 
 (princ "\nType 'printItemNumbers' to list item numbers with their row heights.\n")
 (princ)
 
-
-
-Command: PRINTITEMNUMBERS
-; error: bad function: (#<VLA-OBJECT IAcadTable 0000026a10e01208> #<VLA-OBJECT IAcadTable 0000026a10e02388> #<VLA-OBJECT IAcadTable 0000026a10e029a8> #<VLA-OBJECT IAcadTable 0000026a10e00408> #<VLA-OBJECT IAcadTable 0000026a10e00168> #<VLA-OBJECT IAcadTable 0000026a10e00948> #<VLA-OBJECT IAcadTable 0000026a10dfed48> #<VLA-OBJECT IAcadTable 0000026a10dfcea8> #<VLA-OBJECT IAcadTable 0000026a10dff7c8> #<VLA-OBJECT IAcadTable 0000026a10dfda08> #<VLA-OBJECT IAcadTable 0000026a10dfd228> #<VLA-OBJECT IAcadTable 0000026a10dfe568> #<VLA-OBJECT IAcadTable 0000026a10dfe648> #<VLA-OBJECT IAcadTable 0000026a10dfe728> #<VLA-OBJECT IAcadTable 0000026a10dfd688> #<VLA-OBJECT IAcadTable 0000026a10dfc888> #<VLA-OBJECT IAcadTable 0000026a10dfeaa8> #<VLA-OBJECT IAcadTable 0000026a10dfe488> #<VLA-OBJECT IAcadTable 0000026a10dfdd88> #<VLA-OBJECT IAcadTable 0000026a10dff8a8> #<VLA-OBJECT IAcadTable 0000026a10dfe808> #<VLA-OBJECT IAcadTable 0000026a10dff448> #<VLA-OBJECT IAcadTable 0000026a10dfd4c8> #<VLA-OBJECT IAcadTable 0000026a10dff528> #<VLA-OBJECT IAcadTable 0000026a10dfd928> #<VLA-OBJECT IAcadTable 0000026a10dff608> #<VLA-OBJECT IAcadTable 0000026a10dfd768> #<VLA-OBJECT IAcadTable 0000026a10dfde68> #<VLA-OBJECT IAcadTable 0000026a10dfdf48> #<VLA-OBJECT IAcadTable 0000026a10dff988> #<VLA-OBJECT IAcadTable 0000026a10dfe028> #<VLA-OBJECT IAcadTable 0000026a10dfeb88> #<VLA-OBJECT IAcadTable 0000026a10dffa68>)
