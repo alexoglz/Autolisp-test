@@ -78,12 +78,13 @@
     (setq i (1+ i)))
   totalHeight)
 
-(defun filter (pred lst)
-  "Filter a list based on a predicate function"
+(defun filter-tables (tables itemNumber)
+  "Filter tables that start with the given item number"
   (setq result '())
-  (foreach el lst
-    (if (funcall pred el)
-      (setq result (append result (list el)))))
+  (foreach table tables
+    (setq cellContent (strcase (LM:UnFormat (vla-getText table 0 0) nil)))
+    (if (= cellContent itemNumber)
+      (setq result (append result (list table)))))
   result)
 
 (defun place-tables (tables coord)
@@ -106,7 +107,7 @@
     (if (> currentOffset limitOffset)
       (progn
         (setq currentOffset (+ currentOffset rowAddition))
-        (place-tables (filter (lambda (t) (= (strcase (LM:UnFormat (vla-getText t 0 0) nil)) itemNumber)) tables) currentCoord)
+        (place-tables (filter-tables tables itemNumber) currentCoord)
         (setq currentOffset (+ currentOffset (cdr item))))
       (progn
         (setq doNotPlaceList (append doNotPlaceList (list item)))
@@ -122,7 +123,7 @@
     (setq itemNumber (car item))
     (setq rowHeight (cdr item))
     (setq currentOffset (- currentOffset rowHeight))
-    (place-tables (filter (lambda (t) (= (strcase (LM:UnFormat (vla-getText t 0 0) nil)) itemNumber)) tables) currentCoord)
+    (place-tables (filter-tables tables itemNumber) currentCoord)
     (setq currentCoord (list (car currentCoord) currentOffset (caddr currentCoord)))))
 
 (defun C:PlaceTables ()
@@ -148,6 +149,10 @@
   ;; Procesar la lista de "DO NOT PLACE"
   (process-do-not-place-list doNotPlaceList tables startCoord2 20.4285)
   (princ))
+
+(princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
+(princ)
+
 
 (princ "\nType 'PlaceTables' to organize and place tables according to the logic.\n")
 (princ)
