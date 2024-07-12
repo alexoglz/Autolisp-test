@@ -102,15 +102,16 @@
     (setq current-coord nextCoord)
     (setq index (1+ index)))
 
-  ;; Imprimir la segunda lista de "DO NOT PLACE"
-  (if doNotPlaceList
+  ;; Generar la segunda lista desde el primer "DO NOT PLACE"
+  (if firstDoNotPlace
     (progn
       (princ "\nDO NOT PLACE List:\n")
       (setq start-coord-doNotPlace (list 17.5948 20.4285 0.0000))
       (setq current-coord start-coord-doNotPlace)
       (setq index 1)
-      (setq startIndex (position firstDoNotPlace sortedItemData))
-      (foreach item (nthcdr startIndex sortedItemData)
+      (setq firstItemNumber (car firstDoNotPlace))
+      (setq remainingItems (remove-if-not '(lambda (item) (>= (atoi (car item)) (atoi firstItemNumber))) sortedItemData))
+      (foreach item remainingItems
         (setq itemNumber (car item))
         (setq rowHeight (cdr item))
         (setq nextCoord (list (car current-coord) (- (cadr current-coord) rowHeight) (caddr current-coord)))
@@ -137,6 +138,10 @@
   ;; Imprimir los números de item, alturas de fila y coordenadas
   (print-item-numbers-and-heights itemData tables start-coord)
   (princ))
+
+(princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
+(princ)
+
 
 (princ "\nType 'printItemNumbers' to list item numbers with their row heights and coordinates.\n")
 (princ)
