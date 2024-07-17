@@ -1,11 +1,61 @@
-GE Aerospace:
+The engineer shall make sure to have installed the compatible AutoCAD version (validate that AutoCADLT24 is compatible). 
 
-Performance Engineer Intern (R3771675) - Applied
-Intern: Production Technologies - Rotating Parts and Compressor Airfoild (R3772810) - Applied
-GEnx/GE90 Externals Fleet Support Engineering Student (intern) (R3772703) - Applied
-Engine Dynamics Intern (Engineering Student) (R3772971) - Applied
-GE Vernova:
+The engineer shall download the AutoLISP routine from (determine where it shall be saved)   
 
-Configuration Management Intern (R3770206) - Offer given
-Computer Science Intern (R3767071) - Interview
-Lean Operations Intern (R3770666) - Interview
+The engineer shall make sure to save the AutoCAD drawings, AutoLISP Routine and Master Excel in the same folder 
+
+If it is the first time the FORMATBOM routine is used. The engineer shall open the AutoCAD BOM drawing then go to "Manage” in the tool pallete --> Click "Load Application” --> “Startup Suite” --> “Contents” --> “Add” --> Find the location of the FORMATBOM routine --> click "Open" --> Close “Load Applications”. 
+
+ 
+
+Task 1: Update item data in existing layer 
+
+The engineer shall Open the Master excel making sure that they are working in the correct revision. 
+
+In the Index locate the relevant layer/s corresponding worksheet and click the hyperlink. 
+
+If the layer name does not exist in the Index, the engineer shall locate the name of the layer in the AutoCAD BOM drawing, add to the Index list the layers name and in which page is located. Save the document. 
+
+The engineer shall update the relevant information of the part. Save the document. 
+
+The engineer shall open the AutoCAD BOM relevant to the update 
+
+The engineer shall make sure that the path of the DataLink is correct. 
+
+ 
+
+ 
+
+Process 2: Add an item to an existing layer 
+
+2.1. The engineer shall open the Excel F&ID BOM and identify the relevant layer to update by right clicking the lower left corner of the tab list (location shown on image below). This will bring up a list of all the tabs in the Excel file.  
+
+ 
+
+2.2 The engineer shall add the new item information into the corresponding tab in the Excel file. 
+
+2.3 The engineer shall save the Excel document. 
+
+2.4 The engineer shall open the AutoCAD F&ID document corresponding to the modified tab. 
+
+2.5 The engineer shall type “EXTERNAL REFERENCES” command in AutoCAD.  
+
+2.6 The engineer shall click the file reference corresponding to the layer to be updated. Make sure the saved path corresponds to the latest review. Close "EXTERNAL REFERENCES" 
+
+2.7 The engineer shall open data link manager with "DATALINK" command. 
+
+2.8 The engineer shall right click corresponding layer and then click "Edit" 
+
+2.9 The engineer shall click "link to range" and type the new table range that includes the added component. 
+
+2.10 The engineer shall click preview and visually check that the item was updated. Then click "OK" 
+
+2.11 The engineer shall check the Data Link is updated by opening “EXTERNAL REFERENES”, right clicking the relevant Data Link and clicking “Update Data Links”. 
+
+2.12 The engineer shall make sure all the tables that are to be located on the right side of the document are located to the right of the top margin number 6 (location for reference shown below. 
+
+ 
+
+2.13 The engineer que haces rodrigo shall save the AutoCAD document.  
+
+2.14 The engineer shall un “FORMAT BOM” command. Text height, column and row size, and table positioning should be done automatically.  
