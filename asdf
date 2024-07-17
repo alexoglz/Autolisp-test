@@ -1,61 +1,51 @@
-The engineer shall make sure to have installed the compatible AutoCAD version (validate that AutoCADLT24 is compatible). 
+The engineer shall ensure the compatible version of AutoCAD is installed (validate that AutoCAD LT 2024 is compatible).
 
-The engineer shall download the AutoLISP routine from (determine where it shall be saved)   
+The engineer shall download the AutoLISP routine and determine the appropriate save location.
 
-The engineer shall make sure to save the AutoCAD drawings, AutoLISP Routine and Master Excel in the same folder 
+The engineer shall save the AutoCAD drawings, AutoLISP routine, and Master Excel file in the same folder.
 
-If it is the first time the FORMATBOM routine is used. The engineer shall open the AutoCAD BOM drawing then go to "Manage” in the tool pallete --> Click "Load Application” --> “Startup Suite” --> “Contents” --> “Add” --> Find the location of the FORMATBOM routine --> click "Open" --> Close “Load Applications”. 
+If it is the first time the FORMATBOM routine is used, the engineer shall open the AutoCAD BOM drawing, navigate to "Manage" in the tool palette, click "Load Application," then "Startup Suite," then "Contents," and then "Add." The engineer shall locate the FORMATBOM routine, click "Open," and then close "Load Applications."
 
- 
+Task 1: Update Item Data in Existing Layer
 
-Task 1: Update item data in existing layer 
+The engineer shall open the Master Excel file, ensuring they are working with the correct revision.
 
-The engineer shall Open the Master excel making sure that they are working in the correct revision. 
+In the Index, the engineer shall locate the relevant layer's corresponding worksheet and click the hyperlink.
 
-In the Index locate the relevant layer/s corresponding worksheet and click the hyperlink. 
+If the layer name does not exist in the Index, the engineer shall locate the name of the layer in the AutoCAD BOM drawing, add the layer name and its page location to the Index list, and save the document.
 
-If the layer name does not exist in the Index, the engineer shall locate the name of the layer in the AutoCAD BOM drawing, add to the Index list the layers name and in which page is located. Save the document. 
+The engineer shall update the relevant information of the part and save the document.
 
-The engineer shall update the relevant information of the part. Save the document. 
+The engineer shall open the AutoCAD BOM relevant to the update.
 
-The engineer shall open the AutoCAD BOM relevant to the update 
+The engineer shall ensure the DataLink path is correct.
 
-The engineer shall make sure that the path of the DataLink is correct. 
+Process 2: Add an Item to an Existing Layer
 
- 
+2.1. The engineer shall open the Excel F&ID BOM and identify the relevant layer to update by right-clicking the lower left corner of the tab list (location shown in the image below). This will bring up a list of all tabs in the Excel file.
 
- 
+2.2. The engineer shall add the new item information into the corresponding tab in the Excel file.
 
-Process 2: Add an item to an existing layer 
+2.3. The engineer shall save the Excel document.
 
-2.1. The engineer shall open the Excel F&ID BOM and identify the relevant layer to update by right clicking the lower left corner of the tab list (location shown on image below). This will bring up a list of all the tabs in the Excel file.  
+2.4. The engineer shall open the AutoCAD F&ID document corresponding to the modified tab.
 
- 
+2.5. The engineer shall type the “EXTERNAL REFERENCES” command in AutoCAD.
 
-2.2 The engineer shall add the new item information into the corresponding tab in the Excel file. 
+2.6. The engineer shall click the file reference corresponding to the layer to be updated, ensuring the saved path corresponds to the latest revision. Then close "EXTERNAL REFERENCES."
 
-2.3 The engineer shall save the Excel document. 
+2.7. The engineer shall open the Data Link Manager with the "DATALINK" command.
 
-2.4 The engineer shall open the AutoCAD F&ID document corresponding to the modified tab. 
+2.8. The engineer shall right-click the corresponding layer and then click "Edit."
 
-2.5 The engineer shall type “EXTERNAL REFERENCES” command in AutoCAD.  
+2.9. The engineer shall click "Link to range" and type the new table range that includes the added component.
 
-2.6 The engineer shall click the file reference corresponding to the layer to be updated. Make sure the saved path corresponds to the latest review. Close "EXTERNAL REFERENCES" 
+2.10. The engineer shall click "Preview" and visually check that the item was updated, then click "OK."
 
-2.7 The engineer shall open data link manager with "DATALINK" command. 
+2.11. The engineer shall verify that the Data Link is updated by opening “EXTERNAL REFERENCES,” right-clicking the relevant Data Link, and clicking “Update Data Links.”
 
-2.8 The engineer shall right click corresponding layer and then click "Edit" 
+2.12. The engineer shall ensure all tables to be located on the right side of the document are positioned to the right of the top margin number 6 (location for reference shown below).
 
-2.9 The engineer shall click "link to range" and type the new table range that includes the added component. 
+2.13. The engineer shall save the AutoCAD document.
 
-2.10 The engineer shall click preview and visually check that the item was updated. Then click "OK" 
-
-2.11 The engineer shall check the Data Link is updated by opening “EXTERNAL REFERENES”, right clicking the relevant Data Link and clicking “Update Data Links”. 
-
-2.12 The engineer shall make sure all the tables that are to be located on the right side of the document are located to the right of the top margin number 6 (location for reference shown below. 
-
- 
-
-2.13 The engineer que haces rodrigo shall save the AutoCAD document.  
-
-2.14 The engineer shall un “FORMAT BOM” command. Text height, column and row size, and table positioning should be done automatically.  
+2.14. The engineer shall run the “FORMAT BOM” command. Text height, column and row size, and table positioning should be done automatically.
