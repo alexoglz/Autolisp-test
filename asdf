@@ -1,51 +1,90 @@
-The engineer shall ensure the compatible version of AutoCAD is installed (validate that AutoCAD LT 2024 is compatible).
+(defun custom-subseq (1st start end)
+  (setq result '())
+  (setq i start)
+  (while (< i end)
+    (setq result (append result (list (nth i 1st))))
+    (setq i (1+ i))
+  )
+  result
+)
 
-The engineer shall download the AutoLISP routine and determine the appropriate save location.
+(defun sort-layers (layer-list)
+  (setq layer-names (mapcar 'vla-get-Name layer-list))
+  (setq sorted-layer-names (vl-sort layer-names '<))
+  (setq sorted-layers '())
+  (foreach layer-name sorted-layer-names
+    (setq layer (vl-some '(lambda (x) (if (eq layer-name (vla-get-Name x)) x)) layer-list))
+    (if layer (setq sorted-layers (append sorted-layers (list layer)))))
+  sorted-layers
+)
 
-The engineer shall save the AutoCAD drawings, AutoLISP routine, and Master Excel file in the same folder.
+(defun C:PrintLayerNames ()
+  (setq doc(vla-get-ActiveDocument (vlax-get-Acad-Object)))
+  (setq layers (vla-get-Layers doc))
+  (setq layerList '())
 
-If it is the first time the FORMATBOM routine is used, the engineer shall open the AutoCAD BOM drawing, navigate to "Manage" in the tool palette, click "Load Application," then "Startup Suite," then "Contents," and then "Add." The engineer shall locate the FORMATBOM routine, click "Open," and then close "Load Applications."
+  ;; Get all visible and active layers, excluding "0", "2D BORDER", and "defpoints"
+  (vlax-for layer layers
+    (if (and
+	  (= (vla-get-LayerOn layer) :vlax-true)
+	  (/= (vla-get-Freeze layer) :vlax-true)
+	  (/= (vla-get-Lock layer) :vlax-true)
+	  (not (member (strcase (vla-get-Name layer)) '("0" "2D BORDER" "DEFPOINTS")))
+	  )
+      (setq layerList (cons layer layerList))
+    )
+  )
 
-Task 1: Update Item Data in Existing Layer
+  ;; Order layers numerically
+  (setq layerList (sort-layers layerList))
 
-The engineer shall open the Master Excel file, ensuring they are working with the correct revision.
+  ;; Show number of visible layers to the user
+  (setq numLayers (length layerList))
+  (prompt (strcat "\nThere are " (itoa numLayers) " visible layers."))
 
-In the Index, the engineer shall locate the relevant layer's corresponding worksheet and click the hyperlink.
+  (setq remainingLayers numLayers)
 
-If the layer name does not exist in the Index, the engineer shall locate the name of the layer in the AutoCAD BOM drawing, add the layer name and its page location to the Index list, and save the document.
+  (while (> remainingLayers 0)
+    (setq numElements (getint (strcat "\nEnter number of elements for the next list (remaining " (itoa remainingLayers) "): ")))
 
-The engineer shall update the relevant information of the part and save the document.
+    (if (or (null numElements) (<= numElements 0) (> numElements remainingLayers))
+      (prompt "\nInvalid number of elements. Please enter a valid number.")
+      (progn
+	(setq pt (getpoint "\nSelect point to insert layer list: "))
 
-The engineer shall open the AutoCAD BOM relevant to the update.
+	(if pt
+	  (progn
+	    (setq yOffset 0.0)
+	    (setq textHeight 0.1250) ;; Text Height
 
-The engineer shall ensure the DataLink path is correct.
+	    ;; Insert text of visible layers
+	    (foreach layer (custom-subseq layerList 0 numElements)
+	      (setq layerName (vla-get-Name layer))
+	      (vla-put-ActiveLayer doc layer) ;; Change active layer to corresponding layer
+	      (entmakex (list
+		    (cons 0 "TEXT")
+		    (cons 10 (list (car pt) (+ (cadr pt) yOffset) 0.0))
+		    (cons 40 textHeight) ;; Text height
+		    (cons 1 layerName)
+		    (cons 7 "Standard") ;; Text style
+		    (cons 72 0) ;; Aligned to the left
+		    (cons 11 (list (car pt) (+ (cadr pt) yOffset) 0.0))
+		    (cons 71 0) ;; Text generated
+		    (cons 50 0.0) ;; Text rotation
+		    (cons 73 1) ;; Vertical alignment
+		    ))
+	      (setq yOffset (- yOffset (* textHeight 1.5))) ;; Decrease the position for the next line
+	      )
 
-Process 2: Add an Item to an Existing Layer
-
-2.1. The engineer shall open the Excel F&ID BOM and identify the relevant layer to update by right-clicking the lower left corner of the tab list (location shown in the image below). This will bring up a list of all tabs in the Excel file.
-
-2.2. The engineer shall add the new item information into the corresponding tab in the Excel file.
-
-2.3. The engineer shall save the Excel document.
-
-2.4. The engineer shall open the AutoCAD F&ID document corresponding to the modified tab.
-
-2.5. The engineer shall type the “EXTERNAL REFERENCES” command in AutoCAD.
-
-2.6. The engineer shall click the file reference corresponding to the layer to be updated, ensuring the saved path corresponds to the latest revision. Then close "EXTERNAL REFERENCES."
-
-2.7. The engineer shall open the Data Link Manager with the "DATALINK" command.
-
-2.8. The engineer shall right-click the corresponding layer and then click "Edit."
-
-2.9. The engineer shall click "Link to range" and type the new table range that includes the added component.
-
-2.10. The engineer shall click "Preview" and visually check that the item was updated, then click "OK."
-
-2.11. The engineer shall verify that the Data Link is updated by opening “EXTERNAL REFERENCES,” right-clicking the relevant Data Link, and clicking “Update Data Links.”
-
-2.12. The engineer shall ensure all tables to be located on the right side of the document are positioned to the right of the top margin number 6 (location for reference shown below).
-
-2.13. The engineer shall save the AutoCAD document.
-
-2.14. The engineer shall run the “FORMAT BOM” command. Text height, column and row size, and table positioning should be done automatically.
+	    ;; Eliminate layers already used from the list
+	    (setq layerList (custom-subseq layerList numElements (length layerList)))
+	    (setq remainingLayers (- remainingLayers numElements))
+	  )
+	)
+      )
+    )
+  )
+  (princ)
+)
+(princ "\nType 'PrintLayerNames' to insert text for visible layers in multiple lists.\n")
+(princ)
