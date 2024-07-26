@@ -39,15 +39,13 @@
 
   ;; Function to print ASCII art of "GE"
   (defun print-ge ()
-    (princ "\n\n GGGGGGGGGGGGGG     EEEEEEEEEEEEEEE")
-    (princ "\nG                  E")
-    (princ "\nG                  E")
-    (princ "\nG                  E")
-    (princ "\nG                  EEEEEEEEEEE")
-    (princ "\nG     GGGGGGGGGG   EEEEEEEEEEE")
-    (princ "\nG     G      G     E")
-    (princ "\nG     G      G     E")
-    (princ "\n GGGGGGGGGGGGGG    EEEEEEEEEEEEEEE\n")
+    (princ "\n\n GGGGG   EEEEEEE")
+    (princ "\nG     G  E")
+    (princ "\nG        E")
+    (princ "\nG   GGG  EEEE")
+    (princ "\nG     G  E")
+    (princ "\nG     G  E")
+    (princ "\n GGGGG   EEEEEEE\n")
   )
 
   ;; Function to run the main game loop
@@ -75,3 +73,4 @@
 
 (princ "\nType 'WORDLE' to start the game.\n")
 (princ)
+
