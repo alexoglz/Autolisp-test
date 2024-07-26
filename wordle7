@@ -213,5 +213,5 @@
 )
 
 ;; Print instructions on how to start the game
-(princ "\nType 'WORDLE' to start the game.\n")
+;;(princ "\nType 'WORDLE' to start the game.\n")
 (princ)
