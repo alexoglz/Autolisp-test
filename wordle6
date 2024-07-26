@@ -1,0 +1,109 @@
+;;---Organization: GE Vernova-----------------------------------------------------;;
+;;---Title: formatBom-------------------------------------------------------------;;
+;;---Lean Challenge 2024----------------------------------------------------------;;
+;;---Project Name: Simplifying F&ID BOM update process----------------------------;;
+;;---Project Leaders: Eliseo Regla, Yunuen Peña-----------------------------------;;
+;;---Lean Mentor: Rafael Lozano---------------------------------------------------;;
+;;---Authors: Alan Acosta, Alejandro Gonzalez, Rodrigo Valdivia, Ifunanya Amene---;;
+;;---Department: Aeroderivative Fluid Systems-------------------------------------;;
+;;---Description: This AutoLISP code prints a list of the layers that are---------;;
+;;---turned on.------------------------------------------------------------;;
+;;---Instructions: type "PrintLayerNames" in AutoCAD and run the command.  Enter--;;
+;;---the number of layers to list (e.g., 6) and press Enter. Click the desired----;;
+;;---location in the drawing. The script will inform you how many layers----------;;
+;;---were listed and how many are still available.--------------------------------;;
+;;---Refer to first part of main function section (defun c:PrintLayerNames ()).---;;
+
+;; Custom function to get a subsequence from a list
+(defun custom-subseq (1st start end)
+  (setq result '())  ;;Initialize an empty list to store the subsequence
+  (setq i start)     ;;Set the starting index
+  (while (< i end)   ;;Loop from start to end index
+    (setq result (append result (list (nth i 1st))))  ;;Append the element at index i to the result list
+    (setq i (1+ i))  ;;Increment the index
+  )
+  result  ;;Return the result list
+)
+
+;; Custom function to sort a list of layers by their names
+(defun sort-layers (layer-list)
+  (setq layer-names (mapcar 'vla-get-Name layer-list))  ;;Get the names of all layers
+  (setq sorted-layer-names (vl-sort layer-names '<))    ;;Sort the layer names alphabetically
+  (setq sorted-layers '())  ;;Initialize an empty list to store sorted layers
+  (foreach layer-name sorted-layer-names
+    (setq layer (vl-some '(lambda (x) (if (eq layer-name (vla-get-Name x)) x)) layer-list))  ;;Find the layer object by its name
+    (if layer (setq sorted-layers (append sorted-layers (list layer)))))  ;;Append the layer object to the sorted list
+  sorted-layers  ;;Return the sorted list of layers
+)
+
+;; Main function to print layer names
+(defun C:PrintLayerNames ()
+  (setq doc (vla-get-ActiveDocument (vlax-get-Acad-Object)))  ;;Get the active document
+  (setq layers (vla-get-Layers doc))  ;;Get the layers collection from the document
+  (setq layerList '())  ;;Initialize an empty list to store the layers
+
+  ;; Get all visible and active layers, excluding "0", "2D BORDER", and "defpoints"
+  (vlax-for layer layers
+    (if (and
+	  (= (vla-get-LayerOn layer) :vlax-true)  ;;Check if the layer is turned on
+	  (/= (vla-get-Freeze layer) :vlax-true)  ;;Check if the layer is not frozen
+	  (/= (vla-get-Lock layer) :vlax-true)    ;;Check if the layer is not locked
+	  (not (member (strcase (vla-get-Name layer)) '("0" "2D BORDER" "DEFPOINTS")))  ;;Exclude specific layers
+	)
+      (setq layerList (cons layer layerList))  ;;Add the layer to the list
+    )
+  )
+
+  ;; Sort layers numerically by their names
+  (setq layerList (sort-layers layerList))
+
+  ;; Show the number of visible layers to the user
+  (setq numLayers (length layerList))
+  (prompt (strcat "\nThere are " (itoa numLayers) " visible layers."))
+
+  (setq remainingLayers numLayers)  ;;Initialize the count of remaining layers
+
+  (while (> remainingLayers 0)
+    (setq numElements (getint (strcat "\nEnter number of elements for the next list (remaining " (itoa remainingLayers) "): ")))  ;;Ask user for number of elements
+
+    (if (or (null numElements) (<= numElements 0) (> numElements remainingLayers))  ;;Validate the number of elements
+      (prompt "\nInvalid number of elements. Please enter a valid number.")  ;;Show error message if invalid
+      (progn
+	(setq pt (getpoint "\nSelect point to insert layer list: "))  ;;Get the point to insert the list
+
+	(if pt
+	  (progn
+	    (setq yOffset 0.0)  ;;Initialize the y-offset
+	    (setq textHeight 0.1250)  ;;Set the text height
+
+	    ;; Insert text of visible layers
+	    (foreach layer (custom-subseq layerList 0 numElements)
+	      (setq layerName (vla-get-Name layer))  ;;Get the name of the layer
+	      (vla-put-ActiveLayer doc layer)  ;;Change the active layer to the corresponding layer
+	      (entmakex (list
+		    (cons 0 "TEXT")  ;;Create a TEXT entity
+		    (cons 10 (list (car pt) (+ (cadr pt) yOffset) 0.0))  ;;Set the insertion point
+		    (cons 40 textHeight)  ;;Set the text height
+		    (cons 1 layerName)  ;;Set the text string
+		    (cons 7 "Standard")  ;;Set the text style
+		    (cons 72 0)  ;;Aligned to the left
+		    (cons 11 (list (car pt) (+ (cadr pt) yOffset) 0.0))  ;;Set the text alignment point
+		    (cons 71 0)  ;;Set the text generation flag
+		    (cons 50 0.0)  ;;Set the text rotation
+		    (cons 73 1)  ;;Set the vertical alignment
+		    ))
+	      (setq yOffset (- yOffset (* textHeight 1.5)))  ;;Decrease the position for the next line
+	    )
+
+	    ;; Eliminate layers already used from the list
+	    (setq layerList (custom-subseq layerList numElements (length layerList)))
+	    (setq remainingLayers (- remainingLayers numElements))  ;;Update the count of remaining layers
+	  )
+	)
+      )
+    )
+  )
+  (princ)
+)
+(princ "\nType 'PrintLayerNames' to insert text for visible layers in multiple lists.\n")
+(princ)
