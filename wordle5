@@ -6,8 +6,8 @@
     (princ "\n1. Guess the 7-letter word.")
     (princ "\n2. If a letter is correct and in the right position, it will be shown in the correct positions.")
     (princ "\n3. If a letter is correct but in the wrong position, it will be shown in the incorrect positions.")
-    (princ "\n4. Keep guessing until you find the word or decide to stop.")
-    (princ "\nThe correct word is 'VERNOVA'. Good luck!")
+    (princ "\n4. Keep guessing until you find the word.")
+    (princ "\nGood luck!")
   )
 
   ;; Function to get a valid 7-letter guess from the user
