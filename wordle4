@@ -1,0 +1,74 @@
+(defun C:WORDLE ()
+  ;; Function to get a valid 7-letter guess from the user
+  (defun get-guess ()
+    (setq guess (getstring "\nEnter a 7-letter word: "))
+    (while (/= (strlen guess) 7)
+      (princ "\nPlease enter a word with exactly 7 letters.")
+      (setq guess (getstring "\nEnter a 7-letter word: "))
+    )
+    (strcase guess) ; Return the input in uppercase for uniformity
+  )
+
+  ;; Function to check the user's guess against the correct word
+  (defun check-guess (guess word)
+    (setq correct-positions "")
+    (setq correct-letters "")
+    (setq i 0)
+    (while (< i 7)
+      (setq guess-char (substr guess (1+ i) 1))
+      (setq word-char (substr word (1+ i) 1))
+      (if (= guess-char word-char)
+        (setq correct-positions (strcat correct-positions guess-char))
+        (if (vl-string-search guess-char word)
+          (setq correct-letters (strcat correct-letters guess-char))
+        )
+      )
+      (setq i (1+ i))
+    )
+    (list correct-positions correct-letters)
+  )
+
+  ;; Function to print feedback to the user
+  (defun print-feedback (guess feedback)
+    (setq correct-positions (car feedback))
+    (setq correct-letters (cadr feedback))
+    (princ (strcat "\n\"" guess "\""))
+    (princ (strcat "\nCorrect letters in correct positions: " correct-positions))
+    (princ (strcat "\nCorrect letters in incorrect positions: " correct-letters))
+  )
+
+  ;; Function to print ASCII art of "GE"
+  (defun print-ge ()
+    (princ "\n\n GGGGG   EEEEEEE")
+    (princ "\nG     G  E")
+    (princ "\nG        E")
+    (princ "\nG   GGG  EEEE")
+    (princ "\nG     G  E")
+    (princ "\nG     G  E")
+    (princ "\n GGGGG   EEEEEEE\n")
+  )
+
+  ;; Function to run the main game loop
+  (defun play-game ()
+    (setq word "VERNOVA")
+    (while t
+      (setq guess (get-guess))
+      (setq feedback (check-guess guess word))
+      (print-feedback guess feedback)
+      (if (equal (car feedback) word)
+        (progn
+          (princ "\nCongratulations! You guessed the word correctly.")
+          (print-ge)
+          (return) ; Exit the loop correctly
+        )
+      )
+    )
+  )
+
+  ;; Start the game
+  (play-game)
+  (princ)
+)
+
+(princ "\nType 'WORDLE' to start the game.\n")
+(princ)
