@@ -64,7 +64,7 @@
   (setq remainingLayers numLayers)  ;;Initialize the count of remaining layers
 
   (while (> remainingLayers 0)
-    (setq numElements (getstring (strcat "\nEnter number of elements for the next list (remaining " (itoa remainingLayers) " or type 'WORDLE' to play): ")))  ;;Ask user for number of elements or to play Wordle
+    (setq numElements (getstring (strcat "\nEnter number of elements for the next list (remaining " (itoa remainingLayers) "): ")))  ;;Ask user for number of elements or to play Wordle
 
     (if (equal (strcase numElements) "WORDLE")
       (progn
