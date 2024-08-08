@@ -16,30 +16,31 @@
         (while (< row numRows)
           (setq col 0)
           (while (< col numCols)
-            ;; Set the cell content formatting to "Data"
-            ;; Note: This step assumes "Data" uses the standard text style
-            ;; You may need to adjust these settings based on your specific use case
-            (vla-putTextStyle entity row col "Standard")
-            ;; Reset other cell properties like alignment and color if needed
-            (vla-putAlignment entity row col acMiddleCenter) ; Center alignment
-            (vla-putTextHeight entity row col 0.18) ; Adjust text height
-            ;; Add more properties as needed
+            ;; Modify each cell to match "Data" style
+            ;; Change text style to "Standard" (or the style you prefer for "Data")
+            (vla-setTextStyle entity row col "Standard")
+
+            ;; Reset text height (adjust to your standard "Data" height)
+            (vla-setTextHeight entity row col 0.18)
+
+            ;; Reset text alignment (usually centered for data rows)
+            (vla-setAlignment entity row col acMiddleCenter)
+
+            ;; Reset text color (optional)
+            (vla-setTextColor entity row col acByLayer)
+
+            ;; Move to the next column
             (setq col (1+ col))
           )
+          ;; Move to the next row
           (setq row (1+ row))
         )
       )
     )
   )
-  (princ "\nAll table rows set to 'Data' style.")
+  (princ "\nAll table rows have been set to 'Data' style properties.")
   (princ)
 )
 
-(princ "\nType 'SetRowsToData' to set all table rows to the 'Data' style.\n")
+(princ "\nType 'SetRowsToData' to reset all table rows to the 'Data' style properties.\n")
 (princ)
-
-
-  ;; Print a message to confirm the operation
-  (princ "\nAll rows in all tables have been set to the 'Data' style.")
-  (princ)
-)
