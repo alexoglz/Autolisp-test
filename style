@@ -17,17 +17,15 @@
           (setq col 0)
           (while (< col numCols)
             ;; Modify each cell to match "Data" style
+
             ;; Change text style to "Standard" (or the style you prefer for "Data")
-            (vla-setTextStyle entity row col "Standard")
+            (vla-SetTextStyle entity row col "Standard")
 
             ;; Reset text height (adjust to your standard "Data" height)
-            (vla-setTextHeight entity row col 0.18)
+            (vla-SetTextHeight entity row col 0.18)
 
             ;; Reset text alignment (usually centered for data rows)
-            (vla-setAlignment entity row col acMiddleCenter)
-
-            ;; Reset text color (optional)
-            (vla-setTextColor entity row col acByLayer)
+            (vla-SetAlignment entity row col acMiddleCenter)
 
             ;; Move to the next column
             (setq col (1+ col))
