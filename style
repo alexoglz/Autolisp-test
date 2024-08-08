@@ -1,12 +1,9 @@
-(defun C:SetAllRowsToData ()
+(defun C:SetRowsToData ()
   ;; Get the active document
   (setq doc (vla-get-ActiveDocument (vlax-get-Acad-Object)))
 
-  ;; Get the model space (or paper space, if needed)
-  (setq modelSpace (vla-get-ModelSpace doc))
-
-  ;; Loop through all entities in the model space
-  (vlax-for entity modelSpace
+  ;; Loop through all entities in the active document
+  (vlax-for entity (vla-get-ModelSpace doc)
     ;; Check if the entity is a table
     (if (eq (vla-get-ObjectName entity) "AcDbTable")
       (progn
@@ -14,13 +11,19 @@
         (setq numRows (vla-get-Rows entity))
         (setq numCols (vla-get-Columns entity))
 
-        ;; Loop through each row and each cell in the row
+        ;; Loop through each cell in the table
         (setq row 0)
         (while (< row numRows)
           (setq col 0)
           (while (< col numCols)
-            ;; Set the row style to "Data" for each cell
-            (vla-SetTextStyle entity row col "Standard") ;; Set the text style to "Standard" or as needed
+            ;; Set the cell content formatting to "Data"
+            ;; Note: This step assumes "Data" uses the standard text style
+            ;; You may need to adjust these settings based on your specific use case
+            (vla-putTextStyle entity row col "Standard")
+            ;; Reset other cell properties like alignment and color if needed
+            (vla-putAlignment entity row col acMiddleCenter) ; Center alignment
+            (vla-putTextHeight entity row col 0.18) ; Adjust text height
+            ;; Add more properties as needed
             (setq col (1+ col))
           )
           (setq row (1+ row))
@@ -28,6 +31,13 @@
       )
     )
   )
+  (princ "\nAll table rows set to 'Data' style.")
+  (princ)
+)
+
+(princ "\nType 'SetRowsToData' to set all table rows to the 'Data' style.\n")
+(princ)
+
 
   ;; Print a message to confirm the operation
   (princ "\nAll rows in all tables have been set to the 'Data' style.")
