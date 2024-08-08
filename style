@@ -1,0 +1,32 @@
+(defun C:SetRowStyleToData ()
+  ;; Get the active document
+  (setq doc (vla-get-ActiveDocument (vlax-get-Acad-Object)))
+
+  ;; Get the model space (or paper space, if needed)
+  (setq modelSpace (vla-get-ModelSpace doc))
+
+  ;; Loop through all entities in the model space
+  (vlax-for entity modelSpace
+    ;; Check if the entity is a table
+    (if (eq (vla-get-ObjectName entity) "AcDbTable")
+      (progn
+        ;; Get the number of rows in the table
+        (setq numRows (vla-get-Rows entity))
+
+        ;; Loop through each row
+        (setq i 0)
+        (while (< i numRows)
+          ;; Set the row style to "Data"
+          (vla-putRowStyle entity i acDataRow)
+
+          ;; Increment the row counter
+          (setq i (1+ i))
+        )
+      )
+    )
+  )
+
+  ;; Print a message to confirm the operation
+  (princ "\nAll rows in all tables have been set to the 'Data' style.")
+  (princ)
+)
