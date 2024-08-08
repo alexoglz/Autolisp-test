@@ -16,9 +16,6 @@
         ;; Loop through each row in the table
         (setq row 0)
         (while (< row numRows)
-          ;; Check the row style
-          (setq rowStyle (vla-getRowStyle entity row))
-          
           ;; Loop through each column in the current row
           (setq col 0)
           (while (< col numCols)
@@ -39,3 +36,4 @@
 
 (princ "\nType 'ChangeTextHeight' to change the text height in all rows of all tables to 0.1389.\n")
 (princ)
+
