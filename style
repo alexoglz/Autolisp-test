@@ -1,4 +1,6 @@
-(defun C:SetRowsToData ()
+(defun C:ChangeTextHeight ()
+  (setq newTextHeight 0.1389) ;; Desired text height
+
   ;; Get the active document
   (setq doc (vla-get-ActiveDocument (vlax-get-Acad-Object)))
 
@@ -11,22 +13,17 @@
         (setq numRows (vla-get-Rows entity))
         (setq numCols (vla-get-Columns entity))
 
-        ;; Loop through each cell in the table
+        ;; Loop through each row in the table
         (setq row 0)
         (while (< row numRows)
+          ;; Check the row style
+          (setq rowStyle (vla-getRowStyle entity row))
+          
+          ;; Loop through each column in the current row
           (setq col 0)
           (while (< col numCols)
-            ;; Modify each cell to match "Data" style
-
-            ;; Change text style to "Standard" (or the style you prefer for "Data")
-            (vla-SetTextStyle entity row col "Standard")
-
-            ;; Reset text height (adjust to your standard "Data" height)
-            (vla-SetTextHeight entity row col 0.18)
-
-            ;; Reset text alignment (usually centered for data rows)
-            (vla-SetAlignment entity row col acMiddleCenter)
-
+            ;; Set the text height for each cell in the row
+            (vla-SetTextHeight entity row col newTextHeight)
             ;; Move to the next column
             (setq col (1+ col))
           )
@@ -36,9 +33,9 @@
       )
     )
   )
-  (princ "\nAll table rows have been set to 'Data' style properties.")
+  (princ "\nText height changed to specified value for all rows in all tables.")
   (princ)
 )
 
-(princ "\nType 'SetRowsToData' to reset all table rows to the 'Data' style properties.\n")
+(princ "\nType 'ChangeTextHeight' to change the text height in all rows of all tables to 0.1389.\n")
 (princ)
