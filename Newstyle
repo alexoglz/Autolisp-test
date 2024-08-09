@@ -58,9 +58,9 @@
               (vl-catch-all-apply
                 '(lambda ()
                    ;; Get the cell content, unformat it, and set it back
-                   (setq cellContent (vla-getText ent row col 0)) ;; Specify the third parameter (text format type)
+                   (setq cellContent (vla-getText ent row col)) ;; Corrected to remove the extra parameter
                    (setq unformattedContent (LM:UnFormat cellContent nil))
-                   (vla-setText ent row col unformattedContent) ;; Specify the third parameter (text format type)
+                   (vla-setText ent row col unformattedContent) ;; Corrected to remove the extra parameter
                 )
               )
             )
@@ -82,13 +82,3 @@
 
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
-
-
-Command: REMOVEEXCELFORMATTING
-Error processing cell (0, 0): Too many actual parameters
-Error processing cell (0, 1): Too many actual parameters
-Error processing cell (0, 2): Too many actual parameters
-Error processing cell (0, 3): Too many actual parameters
-Error processing cell (0, 4): Too many actual parameters
-Error processing cell (0, 5): Too many actual parameters
-Attempted to remove Excel formatting from all tables. Check for errors above.
