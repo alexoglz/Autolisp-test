@@ -58,9 +58,9 @@
               (vl-catch-all-apply
                 '(lambda ()
                    ;; Get the cell content, unformat it, and set it back
-                   (setq cellContent (vla-getText ent row col))
+                   (setq cellContent (vla-getText ent row col 0)) ;; Specify the third parameter (text format type)
                    (setq unformattedContent (LM:UnFormat cellContent nil))
-                   (vla-setText ent row col unformattedContent)
+                   (vla-setText ent row col unformattedContent) ;; Specify the third parameter (text format type)
                 )
               )
             )
@@ -83,12 +83,3 @@
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
 
-
-Command: REMOVEEXCELFORMATTING
-Error processing cell (0, 0): ActiveX Server returned an error: Parameter not optional
-Error processing cell (0, 1): ActiveX Server returned an error: Parameter not optional
-Error processing cell (0, 2): ActiveX Server returned an error: Parameter not optional
-Error processing cell (0, 3): ActiveX Server returned an error: Parameter not optional
-Error processing cell (0, 4): ActiveX Server returned an error: Parameter not optional
-Error processing cell (0, 5): ActiveX Server returned an error: Parameter not optional
-Attempted to remove Excel formatting from all tables. Check for errors above.
