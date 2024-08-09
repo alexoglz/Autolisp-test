@@ -83,3 +83,12 @@
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
 
+
+Command: REMOVEEXCELFORMATTING
+Error processing cell (0, 0): Too many actual parameters
+Error processing cell (0, 1): Too many actual parameters
+Error processing cell (0, 2): Too many actual parameters
+Error processing cell (0, 3): Too many actual parameters
+Error processing cell (0, 4): Too many actual parameters
+Error processing cell (0, 5): Too many actual parameters
+Attempted to remove Excel formatting from all tables. Check for errors above.
