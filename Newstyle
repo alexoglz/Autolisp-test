@@ -9,6 +9,17 @@
   (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
     (progn
       (setq str
+        (vl-catch-all-apply(vl-load-com) ;; Loads ActiveX functions into AutoLISP
+
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
         (vl-catch-all-apply
           (function
             (lambda ()
@@ -55,10 +66,14 @@
         (while (< row numRows)
           (setq col 0)
           (while (< col numCols)
-            ;; Get the cell content, unformat it, and set it back
-            (setq cellContent (vla-getText ent row col))
-            (setq unformattedContent (LM:UnFormat cellContent nil))
-            (vla-setText ent row col unformattedContent)
+            (vl-catch-all-apply
+              '(lambda ()
+                 ;; Get the cell content, unformat it, and set it back
+                 (setq cellContent (vla-getText ent row col))
+                 (setq unformattedContent (LM:UnFormat cellContent nil))
+                 (vla-setText ent row col unformattedContent)
+              )
+            )
             (setq col (1+ col))
           )
           (setq row (1+ row))
@@ -72,3 +87,4 @@
 
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
+
