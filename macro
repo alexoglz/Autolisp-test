@@ -4,12 +4,12 @@ Sub ReplaceRatings()
     Set ws = ThisWorkbook.Sheets("Data") ' Update "Data" with your actual sheet name
 
     For Each cell In ws.Range("A2:A1000") ' Adjust the range according to your data
-        If cell.Value = "3. the inputs are comprehensive" Then
-            cell.Value = "3."
-        ElseIf cell.Value = "2. I am able to start the work" Then
-            cell.Value = "2."
-        ElseIf cell.Value = "1. I am unable to start the work" Then
-            cell.Value = "1."
+        If cell.Value = "3. The inputs are comprehensive and cover all aspects necessary for completing the task. They leave no important details or questions unanswered." Then
+            cell.Value = "3. Complete"
+        ElseIf cell.Value = "2. I am able to start the work but will not be able to complete the work without significant discussions to clarify input." Then
+            cell.Value = "2. Start but not able to finish"
+        ElseIf cell.Value = "1. I am unable to start the work due to incomplete or unclear input. I may encounter significant obstacles or delays in my work due to these gaps." Then
+            cell.Value = "1. Unable to start"
         End If
     Next cell
 End Sub
