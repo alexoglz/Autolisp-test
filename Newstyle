@@ -1,2 +1,80 @@
-Command: UNFORMATALLCELLS
-; error: ActiveX Server returned the error: unknown name: "SELECT"
+(vl-load-com) ;; Loads ActiveX functions into AutoLISP
+
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+;; Function to unformat cell content in all tables
+(defun c:UnformatAllCells (/ doc mspace obj tblobj row col cellcontent unformattedcontent)
+  (vl-load-com)
+  (setq doc (vla-get-ActiveDocument (vlax-get-Acad-Object)))
+  (setq mspace (vla-get-ModelSpace doc))
+  ;; Iterate through all objects in model space
+  (vlax-for obj mspace
+    ;; Check if the object is a table
+    (if (eq (vla-get-ObjectName obj) "AcDbTable")
+      (progn
+        (setq tblobj obj)
+        ;; Loop through all rows and columns in the table
+        (setq row 0)
+        (while (< row (vla-get-Rows tblobj))
+          (setq col 0)
+          (while (< col (vla-get-Columns tblobj))
+            ;; Get the cell content
+            (setq cellcontent (vla-gettext tblobj row col))
+            ;; Unformat the cell content using the UnFormat function
+            (setq unformattedcontent (LM:UnFormat cellcontent nil))
+            ;; Set the unformatted content back to the cell
+            (vla-settext tblobj row col unformattedcontent)
+            (setq col (1+ col))
+          )
+          (setq row (1+ row))
+        )
+      )
+    )
+  )
+  ;; Update the drawing to reflect changes
+  (vla-update doc)
+  (princ "\nUnformatted all cells in all tables.")
+)
+
+(princ "\nType UnformatAllCells to unformat the content of all cells in all tables.")
+(princ)
