@@ -9,23 +9,12 @@
   (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
     (progn
       (setq str
-        (vl-catch-all-apply(vl-load-com) ;; Loads ActiveX functions into AutoLISP
-
-;; UnFormat String function by Lee Mac
-(defun LM:UnFormat (str mtx / _replace rx)
-  (defun _replace (new old str)
-    (vlax-put-property rx 'pattern old)
-    (vlax-invoke rx 'replace str new)
-  )
-  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
-    (progn
-      (setq str
         (vl-catch-all-apply
           (function
             (lambda ()
-              (vlax-put-property rx 'global actrue)
-              (vlax-put-property rx 'multiline actrue)
-              (vlax-put-property rx 'ignorecase acfalse)
+              (vlax-put-property rx 'global :vlax-true)
+              (vlax-put-property rx 'multiline :vlax-true)
+              (vlax-put-property rx 'ignorecase :acfalse)
               (foreach pair
                 '(
                   ("\032" . "\\\\\\\\")
@@ -61,17 +50,23 @@
       (progn
         (setq numRows (vla-get-Rows ent)) ;; Get the number of rows in the table
         (setq numCols (vla-get-Columns ent)) ;; Get the number of columns in the table
-        ;; Loop through each cell in the table
         (setq row 0)
         (while (< row numRows)
           (setq col 0)
           (while (< col numCols)
-            (vl-catch-all-apply
-              '(lambda ()
-                 ;; Get the cell content, unformat it, and set it back
-                 (setq cellContent (vla-getText ent row col))
-                 (setq unformattedContent (LM:UnFormat cellContent nil))
-                 (vla-setText ent row col unformattedContent)
+            (setq result 
+              (vl-catch-all-apply
+                '(lambda ()
+                   ;; Get the cell content, unformat it, and set it back
+                   (setq cellContent (vla-getText ent row col))
+                   (setq unformattedContent (LM:UnFormat cellContent nil))
+                   (vla-setText ent row col unformattedContent)
+                )
+              )
+            )
+            (if (vl-catch-all-error-p result)
+              (progn
+                (princ (strcat "\nError processing cell (" (itoa row) ", " (itoa col) "): " (vl-catch-all-error-message result)))
               )
             )
             (setq col (1+ col))
@@ -81,9 +76,9 @@
       )
     )
   )
-  (princ "\nAll tables' Excel formatting removed.")
+  (princ "\nAttempted to remove Excel formatting from all tables. Check for errors above.")
   (princ)
+)
 
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
-
