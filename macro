@@ -1,0 +1,15 @@
+Sub ReplaceRatings()
+    Dim ws As Worksheet
+    Dim cell As Range
+    Set ws = ThisWorkbook.Sheets("Data") ' Update "Data" with your actual sheet name
+
+    For Each cell In ws.Range("A2:A1000") ' Adjust the range according to your data
+        If cell.Value = "3. the inputs are comprehensive" Then
+            cell.Value = "3."
+        ElseIf cell.Value = "2. I am able to start the work" Then
+            cell.Value = "2."
+        ElseIf cell.Value = "1. I am unable to start the work" Then
+            cell.Value = "1."
+        End If
+    Next cell
+End Sub
