@@ -83,7 +83,6 @@
   )
   (princ "\nAll tables' Excel formatting removed.")
   (princ)
-)
 
 (princ "\nType 'RemoveExcelFormatting' to remove Excel formatting from all tables.\n")
 (princ)
