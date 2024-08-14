@@ -1,0 +1,435 @@
+;;---Organization: GE Vernova-----------------------------------------------------;;
+;;---Title: formatBom-------------------------------------------------------------;;
+;;---Lean Challenge 2024----------------------------------------------------------;;
+;;---Project Name: Simplifying F&ID BOM update process----------------------------;;
+;;---Project Leaders: Eliseo Regla, Yunuen Peña-----------------------------------;;
+;;---Lean Mentor: Rafael Lozano---------------------------------------------------;;
+;;---Authors: Alan Acosta, Alejandro Gonzalez, Rodrigo Valdivia, Ifunanya Amene---;;
+;;---Department: Aeroderivative Fluid Systems-------------------------------------;;
+;;---Description: This AutoLISP code reads the tables in an F&ID and applies------;;
+;;---text, column and row formatting. The tables are positioned and---------------;;
+;;---the headers are printed automatically.---------------------------------------;;
+;;---Instructions: type "formatBOM" in AutoCAD and run the command. Check if------;;
+;;---tables were formatted correctly. To modify text height and table properties--;;
+;;---refer to first part of main function section (defun c:formatBOM ()).---------;;
+
+(vl-load-com) ;;Loads ActiveX functions into AutoLISP
+
+;; UnFormat String function by Lee Mac
+(defun LM:UnFormat (str mtx / _replace rx)
+  (defun _replace (new old str)
+    (vlax-put-property rx 'pattern old)
+    (vlax-invoke rx 'replace str new)
+  )
+  (if (setq rx (vlax-get-or-create-object "VBScript.RegExp"))
+    (progn
+      (setq str
+        (vl-catch-all-apply
+          (function
+            (lambda ()
+              (vlax-put-property rx 'global actrue)
+              (vlax-put-property rx 'multiline actrue)
+              (vlax-put-property rx 'ignorecase acfalse)
+              (foreach pair
+                '(
+                  ("\032" . "\\\\\\\\")
+                  (" " . "\\\\P|\\n|\\t")
+                  ("$1" . "\\\\(\\\\[ACcFfHLlOopQTW])|\\\\[ACcFfHLlOopQTW][^\\\\;]*;|\\\\[ACcFfHLlOopQTW]")
+                  ("$1$2/$3" . "([^\\\\])\\\\S([^;]*)[/#\\^]([^;]*);")
+                  ("$1$2" . "\\\\(\\\\S)|[\\\\](})|}")
+                  ("$1" . "[\\\\]({)|{")
+                )
+                (setq str (_replace (car pair) (cdr pair) str))
+              )
+              (if mtx
+                (_replace "\\\\" "\032" (_replace "\\$1$2$3" "(\\\\[ACcFfHLlOoPpQSTW])|({)|(})" str))
+                (_replace "\\" "\032" str)
+              )
+            )
+          )
+        )
+      )
+      (vlax-release-object rx)
+      (if (null (vl-catch-all-error-p str))
+        str
+      )
+    )
+  )
+)
+
+;;Remove empty characters from string
+(defun removeSpaces (string)
+(vl-list->string
+ (vl-remove
+   32
+ (vl-string->list string )))
+)
+
+;;Main function definition
+
+(defun c:formatBOM ( / minItemNumber maxItemNumber maxHeight tables table rowCount i j row currentHeight cellContent unformattedContent textHeight verticalMargin horizontalMargin minRowHeight rowHeightList rowHeightSum flag insertionCoordinate coord ycoord xcoord secondColumnXcoord initialPt initialPtListFormat headerCopy) 
+  (command "_qsave") ;;Saves the document
+  (princ "\nRunning table formatting commands")
+  
+  ;; Modify the following variables to change text height and cell margins
+  (setq textHeight 0.1389) ;; Set the text height for table cells
+  (setq verticalMargin 0.06) ;; Set the vertical margin for table cells
+  (setq horizontalMargin 0.06) ;; Set the horizontal margin for table cells
+  
+  ;;Modify the following variables to change table coordinates
+  (setq ycoord 20.4) ;;y coordinate of first table
+  (setq xcoord 1.5)  ;;x coordinate of first table
+  (setq secondColumnXcoord 17.3) ;;x coordinate of the first table in the second column of tables
+  
+  ;;Modify the following variables to change column lengths
+  (setq col1Length 0.6415)
+  (setq col2Length 2.1142)
+  (setq col3Length 2.6856)
+  (setq col4Length 2.5281)
+  (setq col5Length 0.9262)
+  (setq col6Length 6.5582)
+  
+  (setq minRowHeight 0) ;; Initialize variable for minimum row height
+  (setq headerYCoord (+ ycoord 0.4952)) ;;Y insertion coordinate for the headers header
+  ;; Initialize the minimum and maximum item numbers
+  (setq minItemNumber nil)
+  (setq maxItemNumber nil)
+  (setq maxHeight 0);; Initialize the maximum height
+  (command "-layer" "unlock" "*" "") ;;Unlocks all layers
+  ;; Get all entities in the drawing
+  (setq tables (vla-get-ModelSpace (vla-get-ActiveDocument (vlax-get-acad-object))))
+  (princ "\nRetrieved all entities in the drawing.")
+  
+  ;; Determine the minimum and maximum item numbers from all tables
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+      (progn
+        (setq table ent) ;; Set current entity to table
+        ;(princ (strcat "\nProcessing Layer: " (vla-get-Layer table)))
+        (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+        ;; Iterate over all rows to find min and max item numbers
+        (setq i 0)
+        (if (= "ITEM NO." (LM:UnFormat (vla-getText table 0 0) nil))
+          (progn
+            (if (> rowCount 1) ;;This if statement only deletes the first row if the header is part of a table with more item numbers
+            (progn
+              (princ "\nDelete the header rows that are inside a table with other items by updating the range in DATALINK, then run formatBOM again.")
+              (exit)
+            )
+            (progn
+              (vla-delete table)
+            )
+            )
+          )
+          (progn
+            (while (< i rowCount)
+              ;; Use vla-getText to get the cell content
+              (setq cellContent (vla-getText table i 0))
+              ;; Unformat the cell content for comparison
+              (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+              ;; Set the unformatted content back to the cell to remove formatting
+              ;;(vla-settext table i 0 unformattedContent)
+              (if (= unformattedContent "") ;;checks if there is a row with empty item no.
+                
+                (progn
+                  (alert (strcat "\nThe table in Layer: " (vla-get-Layer table) " , contains rows without an item number. Please ensure all rows have a valid item number and try again."
+                  "\nIf you need assistance, refer to the Troubleshooting section in the work instructions."))
+                (exit) ;;Exits the AutoLISP program
+                )
+              )
+              (if (and unformattedContent (not (eq unformattedContent "")))
+                (progn
+                  (setq itemNumber (atoi unformattedContent)) ;; Convert cell content to integer
+                  (if (or (not minItemNumber) (< itemNumber minItemNumber))
+                    (setq minItemNumber itemNumber)) ;; Update minItemNumber if a smaller value is found
+                  (if (or (not maxItemNumber) (> itemNumber maxItemNumber))
+                    (setq maxItemNumber itemNumber)) ;; Update maxItemNumber if a larger value is found
+                );;progn
+              );;if
+              (setq i (1+ i))
+            );;while
+          );;progn
+        );;if
+      );;progm
+    );;if
+  )
+
+  ;; Format all tables
+  (vlax-for ent tables
+    (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+      (progn
+        (setq table ent) ;; Set current entity to table
+        (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+        ;; Iterate over all rows to set the format
+        (setq i 0)
+        (while (< i rowCount)
+          ;; Set the column widths
+          (vla-setcolumnwidth table 0 col1Length) ;; Set the first column width
+          (vla-setcolumnwidth table 1 col2Length) ;; Set the second column width
+          (vla-setcolumnwidth table 2 col3Length) ;; Set the third column width
+          (vla-setcolumnwidth table 3 col4Length) ;; Set the fourth column width
+          (vla-setcolumnwidth table 4 col5Length) ;; Set the fifth column width
+          (vla-setcolumnwidth table 5 col6Length) ;; Set the sixth column width
+          
+          ;; Set the text height and cell margins
+          (vla-settextheight table acDataRow textHeight) ;; Set the text height for data rows
+          (vla-settextheight table acTitleRow textHeight) ;; Set the text height for data rows
+          (vla-settextheight table acHeaderRow textHeight) ;; Set the text height for data rows
+          (vla-put-VertCellMargin table verticalMargin) ;; Set the vertical margin for cells
+          (vla-put-HorzCellMargin table horizontalMargin) ;; Set the horizontal margin for cells
+          
+          (setq minRowHeight (vla-getminimumrowheight table i)) ;; Get the minimum row height based on the text
+          (vla-setRowHeight table i minRowHeight) ;; Set the minimum row height for the current row
+          (vla-setcellalignment table i 0 acMiddleCenter) ;; Set alignment for the first column
+          (vla-setcellalignment table i 1 acMiddleLeft) ;; Set alignment for the second column
+          (vla-setcellalignment table i 2 acMiddleLeft) ;; Set alignment for the third column
+          (vla-setcellalignment table i 3 acMiddleLeft) ;; Set alignment for the fourth column
+          (vla-setcellalignment table i 4 acMiddleCenter) ;; Set alignment for the fifth column
+          (vla-setcellalignment table i 5 acMiddleLeft) ;; Set alignment for the sixth column
+    
+          (setq i (+ i 1)) ;; Increment row counter
+        );;while
+      );;progn
+    );;if
+  )
+  
+  (princ "\nTable columns and text formatted")
+  
+  ;; Adjust row heights for each item number
+  (setq itemNumber minItemNumber)
+  (while (<= itemNumber maxItemNumber)
+    ;; Iterate over all entities and filter the tables
+    (vlax-for ent tables
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+        (progn
+          (setq table ent) ;; Set current entity to table
+          (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+
+          ;; Iterate over all rows to find the maximum height of the row with the specified item number
+          (setq i 0)
+          (while (< i rowCount)
+            ;; Use vla-getText to get the cell content
+            (setq cellContent (vla-getText table i 0))
+            ;; Unformat the cell content for comparison
+            (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+            (if (= unformattedContent (itoa itemNumber))
+              (progn
+                (setq currentHeight (vla-getRowHeight table i)) ;; Get the current height of the row
+                (if (> currentHeight maxHeight)
+                  (setq maxHeight currentHeight) ;; Update maxHeight if a larger value is found
+                );;if
+              );;progn
+            );;if
+            (setq i (1+ i)) ;; Increment row counter
+          );;while
+        );;progn
+      );;if
+    )
+
+    ;; Adjust the row heights
+    (vlax-for ent tables
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable") ;; Check if entity is a table
+        (progn
+          (setq table ent) ;; Set current entity to table
+          (setq rowCount (vla-get-Rows table)) ;; Get the number of rows in the table
+
+          ;; Iterate over all rows to adjust the height
+          (setq i 0)
+          (while (< i rowCount)
+            ;; Use vla-getText to get the cell content
+            (setq cellContent (vla-getText table i 0))
+            ;; Unformat the cell content for comparison
+            (setq unformattedContent (strcase (LM:UnFormat cellContent nil)))
+            (if (= unformattedContent (itoa itemNumber))
+              (progn
+                (vla-setRowHeight table i maxHeight) ;; Set the row height to maxHeight for rows with matching item number
+              );;progn
+            );;if
+            (setq i (1+ i)) ;; Increment row counter
+          );;while
+        );;progn
+      );;if
+    )
+    (setq maxHeight 0) ;; Reset maxHeight for the next item number
+    (setq itemNumber (+ itemNumber 1)) ;; Increment item number
+  );;while
+  (princ "\nRow heights adjusted.")
+  (princ)
+  
+;;Position Tables
+  (setq itemNumber minItemNumber)
+
+  ;;set initial column coordinates
+  (setq pt1 (vlax-3d-point xcoord ycoord 0))
+  (setq flag 1)
+  (setq rowHeightList (vlax-make-safearray vlax-vbString '(0 . 300) '(0 . 300))) ;;Creates a 2-dimensional array to store the row heights for each item number. Length is 300 because program does not allow to define length at runtime
+  (setq rowHeightSum (vlax-make-safearray vlax-vbString '(0 . 300))) ;;Creates an array to store the sum of rowHeights
+  
+  (setq j 0)
+  (while (<= itemNumber maxItemNumber) ;;repeats the loop for all item numbers
+    ;; Iterate over all entities and filter the tables
+    (vlax-for ent tables
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+        (progn
+          (setq table ent)
+          (setq rowCount (vla-get-Rows table)) ;;Sets the number of rows of the table to rowCount
+          (setq i 0)
+          (while (< i rowCount) ;;loop repeats for every row in the table
+            ;; Use vla-getText to get the cell content
+            (setq cellContent (vla-getText table i 0))
+            ;; Unformat the cell content for comparison
+            (setq tempUnformattedContent (strcase (LM:UnFormat cellContent nil)))
+            (setq unformattedContent (removeSpaces(substr tempUnformattedContent 1 3))) ;;substr function only reads the first three characters of the string. In case of an x thru x case     
+            (if (= unformattedContent (itoa itemNumber))
+              (progn
+                (if (= flag 1) ;;Only runs the following commands once for each item number
+                  (progn
+                    (if (= j 0) ;;runs following commands only for the first item number
+                      (progn
+                      (vlax-safearray-put-element rowHeightList 1 j unformattedContent) ;;Writes the item number to rowHeightList array
+                      (vlax-safearray-put-element rowHeightList 2 j (rtos(vla-getrowheight table i))) ;;Writes the rowHeight to the item number indec in rowHeightList 
+                      (vlax-safearray-put-element rowHeightSum j "0.0") ;;Sets the first value of rowHeightSum as 0.0 because it is the first row
+                      );;progn
+                      (progn
+                      (vlax-safearray-put-element rowHeightList 1 j unformattedContent) ;;Writes the item number to rowHeightList array
+                      (vlax-safearray-put-element rowHeightList 2 j (rtos(vla-getrowheight table i))) ;;Writes the rowHeight to the item number indec in rowHeightList 
+                      (vlax-safearray-put-element rowHeightSum j (+ (distof (vlax-safearray-get-element rowHeightSum (- j 1))) (distof (vlax-safearray-get-element rowHeightList 2 (- j 1))))) ;;Calculates the sum of the previous rows to get the position the table needs to be placed in
+                      (setq flag 0)
+                      );;progn
+                    );;if
+                  );;progn
+                );;if
+              );;progn
+            );;if
+            (setq i (+ i 1))
+          )
+          (if (/= j 0) ;;this sets the rowHeight of the previous row to the current one for the cases where there is an X thru X item number. When the next row is read it ensures the rowHeightSum corresponds to the previous item number.      
+            (if (= (vlax-safearray-get-element rowHeightList 2 j) "")
+             (progn
+              (vlax-safearray-put-element rowHeightList 2 j (vlax-safearray-get-element rowHeightList 2 (- j 1)))
+              (vlax-safearray-put-element rowHeightSum j (vlax-safearray-get-element rowHeightSum (- j 1))) 
+             );;progn
+            );;if
+          );;if
+        );;progn
+      );;if
+    )
+    (setq flag 1) 
+    (setq j (+ j 1)) ;;counter for array
+    (setq itemNumber(+ itemNumber 1)) ;;Next Item Number
+  );;while
+  
+  (setq itemNumber minItemNumber)
+  (setq j 0)
+  (setq flag 1)
+  (while (<= itemNumber maxItemNumber)
+    ;; Iterate over all entities and filter the tables
+    (vlax-for ent tables ;;iterates through all the tables in the document
+      (if (eq (vlax-get-property ent 'ObjectName) "AcDbTable")
+        (progn
+          (setq table ent)
+          (setq rowCount (vla-get-Rows table))
+          (setq i 0)
+          ;; Use vla-getText to get the cell content
+          (setq cellContent (vla-getText table 0 0)) ;;Gets the text from the first row and column of current table
+          ;; Unformat the cell content for comparison
+          (setq tempUnformattedContent (strcase (LM:UnFormat cellContent nil)))
+          (setq unformattedContent (removeSpaces(substr tempUnformattedContent 1 3))) ;;substr function only reads the first three characters of the string. In case of an x thru x case
+          (if (= unformattedContent (itoa itemNumber))
+            (progn
+              (setq initialPt(vlax-get-property table 'InsertionPoint)) ;;Gets the current insertion point of the table
+              (setq initialPtListFormat (vlax-safearray->list (vlax-variant-value initialPt))) ;;converts the insertion point safe-array to a list for easier manipulation
+              (if(= itemNumber minItemNumber)
+                (progn
+                    (vla-move table initialPt pt1) ;;runs only for the first table in the F&ID as its placement is the same for all documents
+                );;progn
+                (progn
+                  (setq coord (- ycoord (distof (vlax-safearray-get-element rowHeightSum j)))) ;;calculates the coordinates for insertion based on the origin of the document
+                  (if (> (car initialPtListFormat) 13) ;;if the table is in the right part of the document (after coordinate 13) it will set it in the right column of tables
+                    (progn
+                      (if (= flag 1) ;;only runs command once for each item no.
+                        (progn 
+                        (setq ycoord (+ ycoord (distof (vlax-safearray-get-element rowHeightSum j)))) ;;sets the initial coordinate for the second column of tables from which to calculate the position
+                        (setq coord (- ycoord (distof (vlax-safearray-get-element rowHeightSum j)))) ;;Calculates the insertion coordinate based on the sum of row heights
+                        (setq flag 0)
+                        );;progn
+                      );;if
+                      (setq insertionCoordinate(vlax-3d-point secondColumnXcoord coord 0))
+                      (vla-move table initialPt insertionCoordinate) ;;Moves the table to the insertionCoordinate calculated                   
+                    );;progn
+                    (progn
+                      (setq insertionCoordinate(vlax-3d-point xcoord coord 0))
+                      (vla-move table initialPt insertionCoordinate) ;;moves the table to the insertionCoordinate calculated
+                    );;progn
+                  );;if
+                );;progn
+              );;if
+            );;progn
+          );;if
+          (setq i (+ i 1))
+         );;progn
+      );;if
+    )
+    (setq j (+ j 1)) ;;counter for array
+    (setq itemNumber(+ itemNumber 1)) ;;Next item number for loop
+  );;while
+(princ "\nTables positioned")
+  
+;;Print the headers 
+  
+;;Modify the following variables to change text height and cell margins
+  
+  (setq acadObj (vlax-get-acad-object))
+  (setq doc (vla-get-ActiveDocument acadObj))
+
+  (setq pt (vlax-3d-point xcoord headerYCoord 0)) ;;change this coordinates to change left header insertion point
+  (setq pt2 (vlax-3d-point secondColumnXcoord headerYCoord 0)) ;;change this coordinates to change right header insertion point
+  
+  (setq modelSpace (vla-get-ModelSpace doc))
+  (setq table (vla-Addtable modelSpace pt 2 6 1 0.5))
+  
+  (vla-put-TitleSuppressed table :vlax-true) ;;suppresses standard table formatting
+  
+  ;;Sets the column widths
+  (vla-setcolumnwidth table 0 col1Length) ;;set the first column to 0.6415 units wide.
+  (vla-setcolumnwidth table 1 col2Length) ;;set the second column to 2.1142 units wide.
+  (vla-setcolumnwidth table 2 col3Length) ;;set the third column to 2.6856 units wide.
+  (vla-setcolumnwidth table 3 col4Length) ;;set the fourth column to 2.5281 units wide.
+  (vla-setcolumnwidth table 4 col5Length) ;;set the fifth column to 0.9262 units wide.
+  (vla-setcolumnwidth table 5 col6Length) ;;set the sixth column to 6.5582 units wide.
+  
+
+  ;;Sets the text height and cell margins
+  (vla-settextheight table acDataRow textHeight) ;set all data rows to text height 0.1389
+  (vla-settextheight table acTitleRow textHeight) ;; Set the text height for data rows
+  (vla-settextheight table acHeaderRow textHeight) ;; Set the text height for data rows
+  (vla-put-VertCellMargin table verticalMargin) ;; Sets the vertical margin for the table cells
+  (vla-put-HorzCellMargin table horizontalMargin) ;; Sets the horizontal margin for the table cells
+  
+  (vla-settext table 1 0 "ITEM NO.") ;;set the first column header
+  (vla-settext table 1 1 "TAG NO.") ;;set the second column header
+  (vla-settext table 1 2 "DEVICE") ;;set the third column header
+  (vla-settext table 1 3 "MFR/PART NO.") ;;set the fourth column header
+  (vla-settext table 1 4 "QTY.") ;;set the fifth column header
+  (vla-settext table 1 5 "DESCRIPTION") ;;set the sixth column header
+  
+  (setq minRowHeight 0) ;;initialize variable for minimum row height
+  (setq minRowHeight(vla-getminimumrowheight table 1)) ;;gets the minimum row height based on the text
+  (vla-setRowHeight table 1 minRowHeight) ;;sets the minimum row height as the row height
+  (vla-setcellalignment table 1 0 acMiddleCenter) ;;set first column to middle center alignment
+  (vla-setcellalignment table 1 1 acMiddleLeft) ;;set second column to left center alignment
+  (vla-setcellalignment table 1 2 acMiddleLeft) ;;set third column to left center alignment
+  (vla-setcellalignment table 1 3 acMiddleLeft) ;;set fourth column to left center alignment
+  (vla-setcellalignment table 1 4 acMiddleCenter) ;;set fifth column to middle center alignment
+  (vla-setcellalignment table 1 5 acMiddleLeft) ;;set sixth column to left center alignment
+  
+  (vla-deleterows table 0 1) ;;This line deletes the empty title row from the table
+  (vla-put-layer table "0") ;;Sets the header table to layer "0"
+  (setq headerCopy (vla-copy table)) ;;creates a copy of the left header
+  (vla-move headerCopy pt pt2) ;;moves the copy to the right header location
+(princ "\nHeaders printed")
+(princ)
+)
+(princ "Type formatBOM to adjust row heights and format tables.\n")
+(princ)
+
