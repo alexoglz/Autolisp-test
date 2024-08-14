@@ -430,6 +430,19 @@
 (princ "\nHeaders printed")
 (princ)
 )
+
+
+
+
+
+
+
+
+
+
+successfully loaded.
+Command: too many arguments: (IF (= "ITEM NO." (LM:UNFORMAT (vla-GetText TABLE 0 0) nil)) (PROGN (IF (> ROWCOUNT 1) (PROGN (PRINC "\nDelete the header rows that are inside a table with other items by updating the range in DATALINK, then run formatBOM again.") (EXIT)) (PROGN (vla-Delete TABLE)))) (PROGN (SETQ ERRORLAYERS nil) (WHILE (< I ROWCOUNT) (SETQ CELLCONTENT (vla-GetText TABLE I 0)) (SETQ UNFORMATTEDCONTENT (STRCASE (LM:UNFORMAT CELLCONTENT nil))) (IF (= UNFORMATTEDCONTENT "") (PROGN (IF (NOT (MEMBER (vla-get-Layer TABLE) ERRORLAYERS)) (SETQ ERRORLAYERS (CONS (vla-get-Layer TABLE) ERRORLAYERS)))))) (IF (AND UNFORMATTEDCONTENT (NOT (EQ UNFORMATTEDCONTENT ""))) (PROGN (SETQ ITEMNUMBER (ATOI UNFORMATTEDCONTENT)) (IF (OR (NOT MINITEMNUMBER) (< ITEMNUMBER MINITEMNUMBER)) (SETQ MINITEMNUMBER ITEMNUMBER)) (IF (OR (NOT MAXITEMNUMBER) (> ITEMNUMBER MAXITEMNUMBER)) (SETQ MAXITEMNUMBER ITEMNUMBER)))) (SETQ I (1+ I))) (IF (NOT (NULL ERRORLAYERS)) (PROGN (ALERT (STRCAT "\n The following layers contain rows without an item number. Please ensure all rows have a valid item number and try again." "\n\nLayers:" (VL-LIST->STRING ERRORLAYERS))) (EXIT))))
+Command: too many arguments: (IF (= "ITEM NO." (LM:UNFORMAT (vla-GetText TABLE 0 0) nil)) (PROGN (IF (> ROWCOUNT 1) (PROGN (PRINC "\nDelete the header rows that are inside a table with other items by updating the range in DATALINK, then run formatBOM again.") (EXIT)) (PROGN (vla-Delete TABLE)))) (PROGN (SETQ ERRORLAYERS nil) (WHILE (< I ROWCOUNT) (SETQ CELLCONTENT (vla-GetText TABLE I 0)) (SETQ UNFORMATTEDCONTENT (STRCASE (LM:UNFORMAT CELLCONTENT nil))) (IF (= UNFORMATTEDCONTENT "") (PROGN (IF (NOT (MEMBER (vla-get-Layer TABLE) ERRORLAYERS)) (SETQ ERRORLAYERS (CONS (vla-get-Layer TABLE) ERRORLAYERS)))))) (IF (AND UNFORMATTEDCONTENT (NOT (EQ UNFORMATTEDCONTENT ""))) (PROGN (SETQ ITEMNUMBER (ATOI UNFORMATTEDCONTENT)) (IF (OR (NOT MINITEMNUMBER) (< ITEMNUMBER MINITEMNUMBER)) (SETQ MINITEMNUMBER ITEMNUMBER)) (IF (OR (NOT MAXITEMNUMBER) (> ITEMNUMBER MAXITEMNUMBER)) (SETQ MAXITEMNUMBER ITEMNUMBER)))) (SETQ I (1+ I))) (IF (NOT (NULL ERRORLAYERS)) (PROGN (ALERT (STRCAT "\n The following layers contain rows without an item number. Please ensure all rows have a valid item number and try again." "\n\nLayers:" (VL-LIST->STRING ERRORLAYERS))) (EXIT))))
 (princ "Type formatBOM to adjust row heights and format tables.\n")
 (princ)
 
