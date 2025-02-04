@@ -1,0 +1,110 @@
+using System;
+using System.Collections.Generic;
+using Excel = Microsoft.Office.Interop.Excel;
+using Eplan.EplApi.ApplicationFramework; // EPLAN Application Framework
+using Eplan.EplApi.DataModel;           // EPLAN DataModel for projects, pages, and functions
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Path to the Excel file
+        string filePath = @"C:\Users\Public\Documents\EPLAN\C#\ComponentList.xlsx";
+
+        // Create a list to store the component information
+        List<Component> components = new List<Component>();
+
+        // Initialize Excel application
+        Excel.Application excelApp = new Excel.Application();
+        Excel.Workbook workbook = excelApp.Workbooks.Open(filePath);
+        Excel.Worksheet worksheet = workbook.Sheets[1]; // Assuming data is in the first sheet
+        Excel.Range range = worksheet.UsedRange;
+
+        // Loop through the rows in the Excel sheet
+        for (int row = 2; row <= range.Rows.Count; row++) // Assuming the first row is the header
+        {
+            // Read component information from each row
+            string componentName = (range.Cells[row, 1] as Excel.Range).Value2.ToString();
+            string macroPath = (range.Cells[row, 2] as Excel.Range).Value2.ToString();
+            double xCoordinate = Convert.ToDouble((range.Cells[row, 3] as Excel.Range).Value2);
+            double yCoordinate = Convert.ToDouble((range.Cells[row, 4] as Excel.Range).Value2);
+
+            // Add the component to the list
+            components.Add(new Component
+            {
+                Name = componentName,
+                MacroPath = macroPath,
+                X = xCoordinate,
+                Y = yCoordinate
+            });
+        }
+
+        // Close the Excel workbook and application
+        workbook.Close(false);
+        excelApp.Quit();
+
+        // Now, let's insert the macros into EPLAN
+        InsertMacrosIntoEPLAN(components);
+    }
+
+    static void InsertMacrosIntoEPLAN(List<Component> components)
+    {
+        // Initialize EPLAN application
+        Application eplanApp = new Application();
+
+        // Open the test project
+        string projectPath = @"C:\Users\Public\EPLAN\Data\Projects\General Electric\TestProject.elp";
+        Project activeProject = new Project();
+        activeProject.Open(projectPath);
+
+        // Check if the project is open
+        if (activeProject == null)
+        {
+            Console.WriteLine("No project found. Please check the project path.");
+            return;
+        }
+
+        // Loop through each component and insert the macro
+        foreach (var component in components)
+        {
+            try
+            {
+                // Get the target page (assuming the first page for simplicity)
+                Page targetPage = activeProject.Pages[0];
+
+                // Create a new function (macro) on the target page
+                Function newFunction = targetPage.Functions.CreateFunction();
+
+                // Set the macro to insert (using the macro path from Excel)
+                newFunction.FunctionDefinition = activeProject.FunctionDefinitions[component.MacroPath];
+
+                // Set the insertion coordinates (in mm)
+                newFunction.X = component.X;
+                newFunction.Y = component.Y;
+
+                // Add the function to the page
+                targetPage.Functions.Add(newFunction);
+
+                Console.WriteLine($"Inserted macro '{component.Name}' at ({component.X}, {component.Y})");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inserting macro '{component.Name}': {ex.Message}");
+            }
+        }
+
+        // Save the project
+        activeProject.Save();
+
+        Console.WriteLine("Macros inserted successfully!");
+    }
+}
+
+// Component class to store component information
+class Component
+{
+    public string Name { get; set; }
+    public string MacroPath { get; set; }
+    public double X { get; set; }
+    public double Y { get; set; }
+}
