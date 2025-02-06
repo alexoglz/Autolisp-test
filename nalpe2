@@ -5,7 +5,6 @@ namespace EplanMacroInsert
 {
     public class AddInModule : IEplAddIn
     {
-        // Initialize the add-in module when loaded
         public bool OnInit()
         {
             try
@@ -24,31 +23,28 @@ namespace EplanMacroInsert
             return true;
         }
 
-        // Handle add-in exit
         public bool OnExit()
         {
             MessageBox.Show("Add-in exited.");
             return true;
         }
 
-        // Handle GUI initialization (optional, no action required here)
         public bool OnInitGui()
         {
             return true;
         }
 
-        // Handle add-in registration with no return type
+        // Corrected method signature for registration
         public void OnRegister(ref bool register)
         {
-            MessageBox.Show("Add-in registered.");
             register = true;  // Ensure the add-in is registered
+            MessageBox.Show("Add-in registered.");
         }
 
-        // Handle add-in unregistration with no return type
-        public void OnUnregister(ref bool unregister)
+        // Corrected method signature for unregistration
+        public void OnUnregister()
         {
             MessageBox.Show("Add-in unregistered.");
-            unregister = true;  // Allow the unregistration process to complete
         }
     }
 }
