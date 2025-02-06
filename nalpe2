@@ -1,43 +1,39 @@
-using Eplan.EplApi.Base;
-using Eplan.EplApi.Gui;
+using Eplan.EplApi.ApplicationFramework;
 using System.Windows.Forms;
 
 namespace EplanMacroInsert
 {
     public class AddInModule : IEplAddIn
     {
-        // Called when EPLAN starts and loads the add-in
+        // Initialize add-in module when loaded
         public bool OnInit()
         {
-            // Register a new action to trigger macro insertion
-            new Action().AddAction(
-                "InsertMacroTestAction",      // Unique action name
-                new ActionCallingContext(),   // Calling context for parameters (not needed in this case)
-                ExecuteInsertMacro            // Method that performs the macro insertion
-            );
+            try
+            {
+                // Directly call the InsertMacro method to run it at initialization
+                InsertMacro macroInserter = new InsertMacro();
+                macroInserter.InsertWindowMacro();
 
-            MessageBox.Show("Add-in successfully initialized.");
+                MessageBox.Show("Macro insertion executed successfully!");
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"Error during add-in initialization: {ex.Message}");
+            }
+
             return true;
         }
 
-        // Called when EPLAN shuts down
+        // Unload resources if necessary
         public bool OnExit()
         {
-            MessageBox.Show("Add-in is shutting down.");
+            MessageBox.Show("Add-in exited.");
             return true;
         }
 
-        // Called when GUI is initialized
         public bool OnInitGui()
         {
             return true;
-        }
-
-        // Method that triggers the macro insertion
-        private void ExecuteInsertMacro(ActionCallingContext ctx)
-        {
-            InsertMacro macroInserter = new InsertMacro();
-            macroInserter.InsertMacroAtCoordinates();
         }
     }
 }
