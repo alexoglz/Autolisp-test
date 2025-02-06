@@ -5,12 +5,12 @@ namespace EplanMacroInsert
 {
     public class AddInModule : IEplAddIn
     {
-        // Initialize add-in module when loaded
+        // Initialize the add-in module when loaded
         public bool OnInit()
         {
             try
             {
-                // Directly call the InsertMacro method to run it at initialization
+                // Call the InsertMacro method to execute it during initialization
                 InsertMacro macroInserter = new InsertMacro();
                 macroInserter.InsertWindowMacro();
 
@@ -24,16 +24,30 @@ namespace EplanMacroInsert
             return true;
         }
 
-        // Unload resources if necessary
+        // Handle add-in exit
         public bool OnExit()
         {
             MessageBox.Show("Add-in exited.");
             return true;
         }
 
+        // Handle GUI initialization (optional, no action required here)
         public bool OnInitGui()
         {
             return true;
+        }
+
+        // Handle add-in registration
+        public void OnRegister(ref bool register)
+        {
+            MessageBox.Show("Add-in registered.");
+            register = true;  // Ensure the add-in is registered
+        }
+
+        // Handle add-in unregistration
+        public void OnUnregister()
+        {
+            MessageBox.Show("Add-in unregistered.");
         }
     }
 }
