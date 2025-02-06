@@ -7,14 +7,14 @@ namespace EplanMacroInsert
 {
     public class InsertMacro
     {
-        public void InsertMacroAtCoordinates()
+        public void InsertWindowMacro()
         {
             try
             {
-                // Initialize EPLAN project manager
+                // Initialize the ProjectManager
                 ProjectManager projectManager = new ProjectManager();
 
-                // Get the active project
+                // Get the current project
                 Project currentProject = projectManager.CurrentProject;
 
                 if (currentProject == null)
@@ -23,20 +23,37 @@ namespace EplanMacroInsert
                     return;
                 }
 
-                // Define the macro and coordinates
-                string macroPath = @"C:\Path\To\Macro\Test1.ema";
-                double xCoord = 100.0;
-                double yCoord = 50.0;
+                // Specify the page where the macro will be inserted
+                // Replace 'PAGE_NAME' with the name of your target page
+                Page targetPage = currentProject.Pages.FirstOrDefault(p => p.Name == "PAGE_NAME");
 
-                // Instantiate the SymbolMacro object
-                SymbolMacro symbolMacro = new SymbolMacro(currentProject, macroPath);
+                if (targetPage == null)
+                {
+                    MessageBox.Show("Target page not found!");
+                    return;
+                }
 
-                // Insert the macro at the specified coordinates
-                symbolMacro.Insert(xCoord, yCoord, MacroVariants.Variant1, PlacementRotation.ZeroDegrees);
+                // Define the path to the window macro file
+                string macroPath = @"C:\Path\To\Your\Macro\Test1.ema"; // Update this path accordingly
 
-                MessageBox.Show("Macro inserted successfully!");
+                // Define the insertion point coordinates
+                PointD insertionPoint = new PointD(100.0, 50.0); // Adjust as needed
+
+                // Create an instance of the Insert service
+                Insert insertService = new Insert();
+
+                // Insert the window macro
+                insertService.WindowMacro(
+                    macroPath,               // Path to the macro file
+                    0,                       // Variant index (0 for the first variant)
+                    targetPage,              // Page object where the macro will be inserted
+                    insertionPoint,          // Insertion coordinates
+                    Insert.MoveKind.Absolute // Use absolute coordinates for insertion
+                );
+
+                MessageBox.Show("Window macro inserted successfully!");
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 MessageBox.Show($"Error: {ex.Message}");
             }
