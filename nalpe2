@@ -10,7 +10,7 @@ namespace EplanMacroInsert
         {
             try
             {
-                // Call the InsertMacro method to execute it during initialization
+                // Execute macro insertion
                 InsertMacro macroInserter = new InsertMacro();
                 macroInserter.InsertWindowMacro();
 
@@ -37,17 +37,18 @@ namespace EplanMacroInsert
             return true;
         }
 
-        // Handle add-in registration
+        // Handle add-in registration with no return type
         public void OnRegister(ref bool register)
         {
             MessageBox.Show("Add-in registered.");
             register = true;  // Ensure the add-in is registered
         }
 
-        // Handle add-in unregistration
-        public void OnUnregister()
+        // Handle add-in unregistration with no return type
+        public void OnUnregister(ref bool unregister)
         {
             MessageBox.Show("Add-in unregistered.");
+            unregister = true;  // Allow the unregistration process to complete
         }
     }
 }
