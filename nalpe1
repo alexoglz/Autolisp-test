@@ -1,9 +1,9 @@
 using Eplan.EplApi.ApplicationFramework;
 using System.Windows.Forms;
 
-namespace EplanMacroInsert
+namespace EPLAN_Test_2  // Asegúrate de que coincida con el nombre del proyecto
 {
-    public class AddInModule : IEplAddIn
+    public class AddInModule1 : IEplAddIn  // El nombre de la clase puede ser AddInModule1
     {
         public bool OnInit()
         {
@@ -34,7 +34,6 @@ namespace EplanMacroInsert
             return true;
         }
 
-        // Corrected method signature for registration
         public bool OnRegister(ref bool bLoadOnStart)
         {
             bLoadOnStart = true;  // Ensure the add-in is registered and loaded on start
@@ -42,7 +41,6 @@ namespace EplanMacroInsert
             return true;
         }
 
-        // Corrected method signature for unregistration
         public bool OnUnregister()
         {
             MessageBox.Show("Add-in unregistered.");
