@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 public class InsertMacroScript
 {
-    [Start]  // This attribute is necessary for EPLAN scripts
+    [Start]
     public void RunInsertMacroScript()
     {
         try
@@ -20,32 +20,32 @@ public class InsertMacroScript
                 return;
             }
 
-            // Define the target page where you want to insert the macro
-            string pageName = "PAGE_NAME";  // Change this to the correct page name
+            // Define the target page
+            string pageName = "PAGE_NAME";  // Replace with your page name
             Page targetPage = currentProject.Pages.FirstOrDefault(p => p.Name == pageName);
 
             if (targetPage == null)
             {
-                MessageBox.Show($"Page '{pageName}' not found!");
+                MessageBox.Show(string.Format("Page '{0}' not found!", pageName));
                 return;
             }
 
-            // Define the path to your macro file and insertion point
-            string macroPath = @"C:\Path\To\Your\Macro\Test1.ema";  // Update with your macro path
-            PointD insertionPoint = new PointD(100.0, 50.0);         // Update coordinates as needed
+            // Define the macro path and insertion point
+            string macroPath = @"C:\Path\To\Your\Macro\Test1.ema";  // Update this path
+            PointD insertionPoint = new PointD(100.0, 50.0);         // Adjust coordinates as needed
 
-            // Insert the window macro
+            // Insert the macro
             Insert insertService = new Insert();
             insertService.WindowMacro(
                 macroPath, 0, targetPage, insertionPoint, Insert.MoveKind.Absolute
             );
 
-            // Display confirmation message
+            // Display success message
             MessageBox.Show("Window macro inserted successfully!");
         }
         catch (System.Exception ex)
         {
-            MessageBox.Show($"Error: {ex.Message}");
+            MessageBox.Show(string.Format("Error: {0}", ex.Message));
         }
     }
 }
