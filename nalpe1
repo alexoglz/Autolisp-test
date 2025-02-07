@@ -1,50 +1,30 @@
 using Eplan.EplApi.ApplicationFramework;
-using System.Windows.Forms;
 
-namespace EPLAN_Test_2  // Asegúrate de que coincida con el nombre del proyecto
+public class AddInModule : IEplAddIn
 {
-    public class AddInModule1 : IEplAddIn  // El nombre de la clase puede ser AddInModule1
+    public bool OnRegister(ref bool bLoadOnStart)
     {
-        public bool OnInit()
-        {
-            try
-            {
-                // Execute macro insertion
-                InsertMacro macroInserter = new InsertMacro();
-                macroInserter.InsertWindowMacro();
+        bLoadOnStart = true; // Load add-in when EPLAN starts
+        return true;
+    }
 
-                MessageBox.Show("Macro insertion executed successfully!");
-            }
-            catch (System.Exception ex)
-            {
-                MessageBox.Show($"Error during add-in initialization: {ex.Message}");
-            }
+    public bool OnUnregister()
+    {
+        return true;
+    }
 
-            return true;
-        }
+    public bool OnInit()
+    {
+        return true;
+    }
 
-        public bool OnExit()
-        {
-            MessageBox.Show("Add-in exited.");
-            return true;
-        }
+    public bool OnInitGui()
+    {
+        return true;
+    }
 
-        public bool OnInitGui()
-        {
-            return true;
-        }
-
-        public bool OnRegister(ref bool bLoadOnStart)
-        {
-            bLoadOnStart = true;  // Ensure the add-in is registered and loaded on start
-            MessageBox.Show("Add-in registered.");
-            return true;
-        }
-
-        public bool OnUnregister()
-        {
-            MessageBox.Show("Add-in unregistered.");
-            return true;
-        }
+    public bool OnExit()
+    {
+        return true;
     }
 }
