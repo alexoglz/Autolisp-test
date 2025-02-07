@@ -1,50 +1,71 @@
 using Eplan.EplApi.ApplicationFramework;
+using Eplan.EplApi.Base;
+using Eplan.EplApi.DataModel;
+using Eplan.EplApi.HEServices;
+using System.Linq;
 using System.Windows.Forms;
 
-namespace EplanMacroInsert
+public class InsertMacroAction : IEplAction
 {
-    public class AddInModule : IEplAddIn
+    public bool Execute(ActionCallingContext ctx)
     {
-        public bool OnInit()
+        try
         {
-            try
-            {
-                // Execute macro insertion
-                InsertMacro macroInserter = new InsertMacro();
-                macroInserter.InsertWindowMacro();
+            // Initialize the ProjectManager and get the active project
+            ProjectManager projectManager = new ProjectManager();
+            Project currentProject = projectManager.CurrentProject;
 
-                MessageBox.Show("Macro insertion executed successfully!");
-            }
-            catch (System.Exception ex)
+            if (currentProject == null)
             {
-                MessageBox.Show($"Error during add-in initialization: {ex.Message}");
+                MessageBox.Show("No active project found!");
+                return false;
             }
 
+            // Specify the page where the macro will be inserted
+            Page targetPage = currentProject.Pages.FirstOrDefault(p => p.Name == "PAGE_NAME");
+
+            if (targetPage == null)
+            {
+                MessageBox.Show("Target page not found!");
+                return false;
+            }
+
+            // Define the path to the window macro file
+            string macroPath = @"C:\Path\To\Your\Macro\Test1.ema";
+
+            // Define the insertion point coordinates
+            PointD insertionPoint = new PointD(100.0, 50.0);
+
+            // Insert the window macro
+            Insert insertService = new Insert();
+            insertService.WindowMacro(
+                macroPath,               // Path to the macro file
+                targetPage.RepresentationType, // Use page's representation type
+                0,                       // Variant index (0 for the first variant)
+                targetPage,              // Page object
+                insertionPoint,          // Insertion coordinates
+                Insert.MoveKind.Absolute // Use absolute coordinates
+            );
+
+            MessageBox.Show("Window macro inserted successfully!");
             return true;
         }
-
-        public bool OnExit()
+        catch (System.Exception ex)
         {
-            MessageBox.Show("Add-in exited.");
-            return true;
+            MessageBox.Show($"Error: {ex.Message}");
+            return false;
         }
+    }
 
-        public bool OnInitGui()
-        {
-            return true;
-        }
+    public bool OnRegister(ref string Name, ref int Ordinal)
+    {
+        Name = "InsertMacro";
+        Ordinal = 20;
+        return true;
+    }
 
-        // Corrected method signature for registration
-        public void OnRegister(ref bool register)
-        {
-            register = true;  // Ensure the add-in is registered
-            MessageBox.Show("Add-in registered.");
-        }
-
-        // Corrected method signature for unregistration
-        public void OnUnregister()
-        {
-            MessageBox.Show("Add-in unregistered.");
-        }
+    public void GetActionProperties(ref ActionProperties actionProperties)
+    {
+        actionProperties.Description = "Insert a window macro into the active project.";
     }
 }
