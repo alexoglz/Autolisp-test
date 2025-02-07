@@ -1,1 +1,8 @@
-csc /target:library /reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.Baseu.dll" /reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.DataModelu.dll" /reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.HEServicesu.dll" /out:EPLAN.InsertMacroAddIn.dll AddInModule.cs InsertMacroAction.cs
+cd "C:\Users\223137567\Documents\EPLAN\C#\EplanMacroInsertAddIn\EplanMacroInsertAddIn"
+
+"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:library ^
+/reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.AFu.dll" ^
+/reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.Baseu.dll" ^
+/reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.HEServicesu.dll" ^
+/reference:"C:\Program Files\EPLAN\Platform\2.9.4\Bin\Eplan.EplApi.DataModelu.dll" ^
+/out:"EPLAN.MacroInsertAddIn.dll" AddInModule.cs InsertMacroAction.cs
