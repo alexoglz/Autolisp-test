@@ -1,33 +1,97 @@
-Dim codigosFaltantes As String
-Dim filePath As String
-Dim limite As Integer
-Dim fileNumber As Integer
-limite = 20 ' Máximo de códigos a mostrar en el MsgBox
+Sub IdentificarCodigosFaltantes()
+    Dim wbData As Workbook, wbAero As Workbook
+    Dim wsData As Worksheet, ws2D As Worksheet, ws3D As Worksheet
+    Dim fileData As String, fileAero As String
+    Dim lastRow As Long, lastRow2D As Long, lastRow3D As Long
+    Dim dictAero As Object
+    Dim i As Integer
+    Dim codigo As String, fecha As Date
+    Dim codigosFaltantes As String
+    Dim filePath As String
+    Dim fileNumber As Integer
+    Dim limite As Integer
+    limite = 20 ' Máximo de códigos a mostrar en el MsgBox
 
-' Crear la lista de códigos faltantes
-codigosFaltantes = ""
-filePath = ThisWorkbook.Path & "\Missing_Codes.txt"
-
-fileNumber = FreeFile()
-Open filePath For Output As #fileNumber
-Print #fileNumber, "Códigos Faltantes:"
-
-For i = 2 To lastRowFaltantes - 1
-    Print #fileNumber, wsFaltantes.Cells(i, 1).Value ' Escribir en el Bloc de Notas
+    ' Seleccionar el archivo "Data Table.xlsx"
+    fileData = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Data Table")
+    If fileData = "False" Then Exit Sub
     
-    ' También agregar al mensaje emergente hasta 20 códigos
-    If i <= limite Then
-        codigosFaltantes = codigosFaltantes & wsFaltantes.Cells(i, 1).Value & vbNewLine
-    ElseIf i = limite + 1 Then
-        codigosFaltantes = codigosFaltantes & "..." & vbNewLine & "(Demasiados para mostrar en un solo mensaje)"
+    ' Seleccionar el archivo "Aero 2025 Test.xlsx"
+    fileAero = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Aero 2025 Test")
+    If fileAero = "False" Then Exit Sub
+    
+    ' Abrir los archivos seleccionados
+    Set wbData = Workbooks.Open(fileData)
+    Set wbAero = Workbooks.Open(fileAero)
+    
+    ' Seleccionar la primera hoja de Data Table
+    Set wsData = wbData.Sheets(1)
+    
+    ' Seleccionar las hojas de Aero.xlsx
+    Set ws2D = wbAero.Sheets("2D activities")
+    Set ws3D = wbAero.Sheets("3D activities")
+    
+    ' Crear un diccionario para almacenar códigos de Aero
+    Set dictAero = CreateObject("Scripting.Dictionary")
+    
+    ' Obtener los códigos de 2D activities (columna L)
+    lastRow2D = ws2D.Cells(ws2D.Rows.Count, "L").End(xlUp).Row
+    For i = 2 To lastRow2D
+        If ws2D.Cells(i, "L").Value <> "" Then
+            dictAero(ws2D.Cells(i, "L").Value) = 1
+        End If
+    Next i
+
+    ' Obtener los códigos de 3D activities (columna H)
+    lastRow3D = ws3D.Cells(ws3D.Rows.Count, "H").End(xlUp).Row
+    For i = 2 To lastRow3D
+        If ws3D.Cells(i, "H").Value <> "" Then
+            dictAero(ws3D.Cells(i, "H").Value) = 1
+        End If
+    Next i
+
+    ' Crear lista de códigos faltantes
+    codigosFaltantes = ""
+    filePath = ThisWorkbook.Path & "\Missing_Codes.txt"
+
+    fileNumber = FreeFile()
+    Open filePath For Output As #fileNumber
+    Print #fileNumber, "Códigos Faltantes:"
+
+    ' Filtrar por fechas en las próximas dos semanas y extraer códigos
+    lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).Row
+    Dim countFaltantes As Integer
+    countFaltantes = 0
+
+    For i = 2 To lastRow
+        If IsDate(wsData.Cells(i, 1).Value) Then
+            fecha = CDate(wsData.Cells(i, 1).Value)
+            If fecha >= Date And fecha <= Date + 14 Then
+                codigo = Trim(Split(wsData.Cells(i, 5).Value, ":")(0)) ' Extraer código antes de ":"
+                If Not dictAero.exists(codigo) Then
+                    Print #fileNumber, codigo ' Guardar en el archivo .txt
+                    countFaltantes = countFaltantes + 1
+                    ' También agregar al mensaje emergente hasta 20 códigos
+                    If countFaltantes <= limite Then
+                        codigosFaltantes = codigosFaltantes & codigo & vbNewLine
+                    ElseIf countFaltantes = limite + 1 Then
+                        codigosFaltantes = codigosFaltantes & "..." & vbNewLine & "(Demasiados para mostrar en un solo mensaje)"
+                    End If
+                End If
+            End If
+        End If
+    Next i
+
+    Close #fileNumber ' Cerrar el archivo .txt
+
+    ' Cerrar archivos sin guardar cambios
+    wbData.Close False
+    wbAero.Close False
+
+    ' Mostrar los códigos en un MsgBox
+    If countFaltantes = 0 Then
+        MsgBox "No hay códigos faltantes.", vbInformation, "Resultado"
+    Else
+        MsgBox "Códigos faltantes encontrados:" & vbNewLine & codigosFaltantes & vbNewLine & vbNewLine & "Se ha guardado un archivo llamado 'Missing_Codes.txt' con todos los códigos.", vbInformation, "Resultado"
     End If
-Next i
-
-Close #fileNumber ' Cerrar el archivo
-
-' Mostrar los códigos en un MsgBox
-If codigosFaltantes = "" Then
-    MsgBox "No hay códigos faltantes.", vbInformation, "Resultado"
-Else
-    MsgBox "Códigos faltantes encontrados:" & vbNewLine & codigosFaltantes & vbNewLine & vbNewLine & "Se ha guardado un archivo llamado 'Missing_Codes.txt' con todos los códigos.", vbInformation, "Resultado"
-End If
+End Sub
