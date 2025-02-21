@@ -124,9 +124,9 @@ Sub IdentifyMissingCodes()
     Print #fileNumber, existingCodes
     Close #fileNumber ' Done writing to the file, close it
 
-    ' Close both Excel files without saving any changes
-    wbData.Close False
-    wbAero.Close False
+    ' Save both files before finishing the macro
+    wbData.Save
+    wbAero.Save
 
     ' Show a pop-up with the results (but limit to 20 codes for readability)
     If countMissing = 0 Then
