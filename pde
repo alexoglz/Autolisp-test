@@ -1,56 +1,88 @@
-import pandas as pd
-import os
-from tkinter import Tk, filedialog
-
-def seleccionar_archivo():
-    """Abre un cuadro de diálogo para seleccionar un archivo Excel"""
-    root = Tk()
-    root.withdraw()
-    archivo = filedialog.askopenfilename(title="Selecciona un archivo Excel", filetypes=[("Excel Files", "*.xlsx")])
-    return archivo
-
-def extraer_codigos_faltantes(database_file, aero_file):
-    # Leer database.xlsx
-    df_db = pd.read_excel(database_file, engine="openpyxl")
+Sub IdentificarCodigosFaltantes()
+    Dim wbData As Workbook, wbAero As Workbook
+    Dim wsData As Worksheet, ws2D As Worksheet, ws3D As Worksheet, wsFaltantes As Worksheet
+    Dim fileData As String, fileAero As String
+    Dim lastRow As Long, lastRow2D As Long, lastRow3D As Long, lastRowFaltantes As Long
+    Dim dictAero As Object
+    Dim i As Integer
+    Dim codigo As String, fecha As Date
     
-    # Convertir fechas de la primera columna a formato real de fecha
-    df_db.iloc[:, 0] = pd.to_datetime(df_db.iloc[:, 0], format="%b %d, %Y", errors='coerce')
-
-    # Filtrar fechas dentro de las próximas dos semanas
-    fecha_actual = pd.to_datetime("today")
-    fecha_limite = fecha_actual + pd.Timedelta(days=14)
-    df_db = df_db[(df_db.iloc[:, 0] >= fecha_actual) & (df_db.iloc[:, 0] <= fecha_limite)]
+    ' Seleccionar el archivo "Data Table.xlsx"
+    fileData = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Data Table")
+    If fileData = "False" Then Exit Sub
     
-    # Extraer códigos antes de los dos puntos en la columna E
-    df_db["Codigo"] = df_db.iloc[:, 4].astype(str).str.split(":").str[0].str.strip()
+    ' Seleccionar el archivo "Aero.xlsx"
+    fileAero = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Aero")
+    If fileAero = "False" Then Exit Sub
     
-    # Lista de códigos únicos
-    codigos_database = df_db["Codigo"].unique()
+    ' Abrir los archivos seleccionados
+    Set wbData = Workbooks.Open(fileData)
+    Set wbAero = Workbooks.Open(fileAero)
+    
+    ' Seleccionar la primera hoja de Data Table
+    Set wsData = wbData.Sheets(1)
+    
+    ' Seleccionar las hojas de Aero.xlsx
+    Set ws2D = wbAero.Sheets("2D activities")
+    Set ws3D = wbAero.Sheets("3D activities")
+    
+    ' Crear un diccionario para almacenar códigos de Aero
+    Set dictAero = CreateObject("Scripting.Dictionary")
+    
+    ' Obtener los códigos de 2D activities (columna L)
+    lastRow2D = ws2D.Cells(ws2D.Rows.Count, "L").End(xlUp).Row
+    For i = 2 To lastRow2D
+        If ws2D.Cells(i, "L").Value <> "" Then
+            dictAero(ws2D.Cells(i, "L").Value) = 1
+        End If
+    Next i
 
-    # Leer Aero.xlsx
-    xls_aero = pd.ExcelFile(aero_file, engine="openpyxl")
+    ' Obtener los códigos de 3D activities (columna H)
+    lastRow3D = ws3D.Cells(ws3D.Rows.Count, "H").End(xlUp).Row
+    For i = 2 To lastRow3D
+        If ws3D.Cells(i, "H").Value <> "" Then
+            dictAero(ws3D.Cells(i, "H").Value) = 1
+        End If
+    Next i
 
-    # Leer las hojas "2D activities" y "3D activities"
-    df_2d = pd.read_excel(xls_aero, sheet_name="2D activities", usecols=["L"], engine="openpyxl")
-    df_3d = pd.read_excel(xls_aero, sheet_name="3D activities", usecols=["H"], engine="openpyxl")
+    ' Crear la hoja "Missing Codes" si no existe
+    On Error Resume Next
+    Set wsFaltantes = wbAero.Sheets("Missing Codes")
+    If wsFaltantes Is Nothing Then
+        Set wsFaltantes = wbAero.Sheets.Add
+        wsFaltantes.Name = "Missing Codes"
+    Else
+        wsFaltantes.Cells.Clear
+    End If
+    On Error GoTo 0
+    
+    ' Escribir encabezado
+    wsFaltantes.Cells(1, 1).Value = "Códigos Faltantes"
+    
+    ' Obtener última fila de Data Table
+    lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).Row
+    lastRowFaltantes = 2
 
-    # Combinar todas las columnas de Aero en una lista de códigos
-    codigos_aero = set(df_2d.iloc[:, 0].dropna().astype(str)) | set(df_3d.iloc[:, 0].dropna().astype(str))
-
-    # Encontrar códigos que NO están en Aero
-    codigos_faltantes = [codigo for codigo in codigos_database if codigo not in codigos_aero]
-
-    # Guardar en un nuevo archivo Excel
-    output_file = "Missing_Codes.xlsx"
-    pd.DataFrame({"Codigos Faltantes": codigos_faltantes}).to_excel(output_file, index=False)
-
-    print(f"Proceso completado. Se generó el archivo: {output_file}")
-
-if __name__ == "__main__":
-    print("Selecciona el archivo database.xlsx")
-    database_file = seleccionar_archivo()
-
-    print("Selecciona el archivo Aero.xlsx")
-    aero_file = seleccionar_archivo()
-
-    extraer_codigos_faltantes(database_file, aero_file)
+    ' Filtrar por fechas en las próximas dos semanas y extraer códigos
+    For i = 2 To lastRow
+        If IsDate(wsData.Cells(i, 1).Value) Then
+            fecha = CDate(wsData.Cells(i, 1).Value)
+            If fecha >= Date And fecha <= Date + 14 Then
+                codigo = Trim(Split(wsData.Cells(i, 5).Value, ":")(0)) ' Extraer código antes de ":"
+                If Not dictAero.exists(codigo) Then
+                    wsFaltantes.Cells(lastRowFaltantes, 1).Value = codigo
+                    lastRowFaltantes = lastRowFaltantes + 1
+                End If
+            End If
+        End If
+    Next i
+    
+    ' Cerrar archivo Data Table sin guardar
+    wbData.Close False
+    
+    ' Guardar y cerrar Aero.xlsx
+    wbAero.Save
+    wbAero.Close True
+    
+    MsgBox "Proceso completado. Revisa la hoja 'Missing Codes' en Aero.xlsx.", vbInformation
+End Sub
