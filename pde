@@ -1,41 +1,41 @@
-Sub IdentificarCodigosFaltantes()
+Sub IdentifyMissingCodes()
     Dim wbData As Workbook, wbAero As Workbook
     Dim wsData As Worksheet, ws2D As Worksheet, ws3D As Worksheet
     Dim fileData As String, fileAero As String
     Dim lastRow As Long, lastRow2D As Long, lastRow3D As Long
     Dim dictAero As Object
     Dim i As Integer
-    Dim codigo As String, fecha As Date
+    Dim code As String, taskDate As Date
     Dim missingCodes As String, existingCodes As String
     Dim filePath As String
     Dim fileNumber As Integer
-    Dim limite As Integer
+    Dim limit As Integer
     Dim countMissing As Integer, countExisting As Integer
-    limite = 20 ' Máximo de códigos a mostrar en el MsgBox
+    limit = 20 ' Maximum number of codes to display in the message box
 
-    ' Seleccionar el archivo "Data Table.xlsx"
-    fileData = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Data Table")
+    ' Select the "Data Table.xlsx" file
+    fileData = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Select the Data Table file")
     If fileData = "False" Then Exit Sub
     
-    ' Seleccionar el archivo "Aero 2025 Test.xlsx"
-    fileAero = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Selecciona el archivo Aero 2025 Test")
+    ' Select the "Aero 2025 Test.xlsx" file
+    fileAero = Application.GetOpenFilename(FileFilter:="Excel Files (*.xlsx), *.xlsx", Title:="Select the Aero 2025 Test file")
     If fileAero = "False" Then Exit Sub
     
-    ' Abrir los archivos seleccionados
+    ' Open the selected files
     Set wbData = Workbooks.Open(fileData)
     Set wbAero = Workbooks.Open(fileAero)
     
-    ' Seleccionar la primera hoja de Data Table
+    ' Select the first sheet in Data Table
     Set wsData = wbData.Sheets(1)
     
-    ' Seleccionar las hojas de Aero.xlsx
+    ' Select the sheets from Aero 2025 Test
     Set ws2D = wbAero.Sheets("2D activities")
     Set ws3D = wbAero.Sheets("3D activities")
     
-    ' Crear un diccionario para almacenar códigos de Aero
+    ' Create a dictionary to store Aero 2025 Test codes
     Set dictAero = CreateObject("Scripting.Dictionary")
     
-    ' Obtener los códigos de 2D activities (columna L)
+    ' Retrieve codes from 2D activities (Column L)
     lastRow2D = ws2D.Cells(ws2D.Rows.Count, "L").End(xlUp).Row
     For i = 2 To lastRow2D
         If ws2D.Cells(i, "L").Value <> "" Then
@@ -43,7 +43,7 @@ Sub IdentificarCodigosFaltantes()
         End If
     Next i
 
-    ' Obtener los códigos de 3D activities (columna H)
+    ' Retrieve codes from 3D activities (Column H)
     lastRow3D = ws3D.Cells(ws3D.Rows.Count, "H").End(xlUp).Row
     For i = 2 To lastRow3D
         If ws3D.Cells(i, "H").Value <> "" Then
@@ -51,7 +51,7 @@ Sub IdentificarCodigosFaltantes()
         End If
     Next i
 
-    ' Inicializar variables
+    ' Initialize variables
     missingCodes = ""
     existingCodes = ""
     countMissing = 0
@@ -60,57 +60,57 @@ Sub IdentificarCodigosFaltantes()
     filePath = ThisWorkbook.Path & "\Missing_Codes.txt"
     fileNumber = FreeFile()
     Open filePath For Output As #fileNumber
-    Print #fileNumber, "Códigos Faltantes (Missing Codes):"
+    Print #fileNumber, "Missing Codes:"
 
-    ' Filtrar por fechas en las próximas dos semanas y extraer códigos
+    ' Filter by dates within the next two weeks and extract codes
     lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).Row
 
     For i = 2 To lastRow
         If IsDate(wsData.Cells(i, 1).Value) Then
-            fecha = CDate(wsData.Cells(i, 1).Value)
-            If fecha >= Date And fecha <= Date + 14 Then
-                codigo = Trim(Split(wsData.Cells(i, 5).Value, ":")(0)) ' Extraer código antes de ":"
+            taskDate = CDate(wsData.Cells(i, 1).Value)
+            If taskDate >= Date And taskDate <= Date + 14 Then
+                code = Trim(Split(wsData.Cells(i, 5).Value, ":")(0)) ' Extract code before ":"
                 
-                If Not dictAero.exists(codigo) Then
-                    ' Código no encontrado -> Missing Codes
-                    Print #fileNumber, codigo
+                If Not dictAero.exists(code) Then
+                    ' Code not found -> Missing Codes
+                    Print #fileNumber, code
                     countMissing = countMissing + 1
-                    If countMissing <= limite Then
-                        missingCodes = missingCodes & codigo & vbNewLine
-                    ElseIf countMissing = limite + 1 Then
-                        missingCodes = missingCodes & "..." & vbNewLine & "(Demasiados para mostrar en un solo mensaje)"
+                    If countMissing <= limit Then
+                        missingCodes = missingCodes & code & vbNewLine
+                    ElseIf countMissing = limit + 1 Then
+                        missingCodes = missingCodes & "..." & vbNewLine & "(Too many to display in one message)"
                     End If
                 Else
-                    ' Código encontrado -> Existing Codes
+                    ' Code found -> Existing Codes
                     countExisting = countExisting + 1
-                    If countExisting <= limite Then
-                        existingCodes = existingCodes & codigo & vbNewLine
-                    ElseIf countExisting = limite + 1 Then
-                        existingCodes = existingCodes & "..." & vbNewLine & "(Demasiados para mostrar en un solo mensaje)"
+                    If countExisting <= limit Then
+                        existingCodes = existingCodes & code & vbNewLine
+                    ElseIf countExisting = limit + 1 Then
+                        existingCodes = existingCodes & "..." & vbNewLine & "(Too many to display in one message)"
                     End If
                 End If
             End If
         End If
     Next i
 
-    ' Agregar Existing Codes al archivo de texto
-    Print #fileNumber, vbNewLine & "Códigos Encontrados en Aero (Existing Codes):"
+    ' Add Existing Codes to the text file
+    Print #fileNumber, vbNewLine & "Existing Codes in Aero:"
     Print #fileNumber, existingCodes
-    Close #fileNumber ' Cerrar el archivo
+    Close #fileNumber ' Close the text file
 
-    ' Cerrar archivos sin guardar cambios
+    ' Close files without saving changes
     wbData.Close False
     wbAero.Close False
 
-    ' Mostrar los códigos en un MsgBox
+    ' Display the results in a message box
     If countMissing = 0 Then
-        missingCodes = "No hay códigos faltantes."
+        missingCodes = "No missing codes."
     End If
     If countExisting = 0 Then
-        existingCodes = "No hay códigos que ya estuvieran."
+        existingCodes = "No codes were already present."
     End If
 
-    MsgBox "Códigos faltantes:" & vbNewLine & missingCodes & vbNewLine & vbNewLine & _
-           "Códigos encontrados en Aero:" & vbNewLine & existingCodes & vbNewLine & vbNewLine & _
-           "Se ha guardado un archivo llamado 'Missing_Codes.txt' con todos los códigos.", vbInformation, "Resultado"
+    MsgBox "Missing Codes:" & vbNewLine & missingCodes & vbNewLine & vbNewLine & _
+           "Existing Codes in Aero:" & vbNewLine & existingCodes & vbNewLine & vbNewLine & _
+           "A file named 'Missing_Codes.txt' has been saved with all the codes.", vbInformation, "Results"
 End Sub
