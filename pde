@@ -1,13 +1,13 @@
 Sub IdentifyMissingCodes()
     ' Declare variables for the workbooks and sheets
     Dim wbData As Workbook, wbAero As Workbook
-    Dim wsData As Worksheet, ws2D As Worksheet, ws3D As Worksheet
+    Dim wsData As Worksheet, ws2D As Worksheet, ws3D As Worksheet, wsQuality As Worksheet
     
     ' Variables for file selection
     Dim fileData As String, fileAero As String
     
     ' Variables to track the last row in each sheet
-    Dim lastRow As Long, lastRow2D As Long, lastRow3D As Long
+    Dim lastRow As Long, lastRow2D As Long, lastRow3D As Long, lastRowQuality As Long
     
     ' Dictionary to store all codes found in Aero 2025 Test.xlsx
     Dim dictAero As Object
@@ -43,9 +43,10 @@ Sub IdentifyMissingCodes()
     ' Grab the first sheet from Data Table (this is where we get the task descriptions)
     Set wsData = wbData.Sheets(1)
     
-    ' Grab the 2D and 3D activities sheets from Aero 2025 Test
+    ' Grab the 2D, 3D, and Quality Issues 3D sheets from Aero 2025 Test
     Set ws2D = wbAero.Sheets("2D activities")
     Set ws3D = wbAero.Sheets("3D activities")
+    Set wsQuality = wbAero.Sheets("Quality Issues 3D")
     
     ' Create a dictionary to store all the codes from Aero 2025 Test
     Set dictAero = CreateObject("Scripting.Dictionary")
@@ -63,6 +64,14 @@ Sub IdentifyMissingCodes()
     For i = 2 To lastRow3D
         If ws3D.Cells(i, "H").Value <> "" Then
             dictAero(ws3D.Cells(i, "H").Value) = 1
+        End If
+    Next i
+
+    ' Finally, collect all the codes from the Quality Issues 3D sheet (Column H)
+    lastRowQuality = wsQuality.Cells(wsQuality.Rows.Count, "H").End(xlUp).Row
+    For i = 2 To lastRowQuality
+        If wsQuality.Cells(i, "H").Value <> "" Then
+            dictAero(wsQuality.Cells(i, "H").Value) = 1
         End If
     Next i
 
