@@ -77,10 +77,10 @@ Sub CompareAndExtractData()
         
         If Not foundCell Is Nothing Then
             ' Extraer los valores de las columnas CK, CN, CQ y CR
-            dataCN = foundCell.Offset(0, -2).Value ' Columna CN (-2 desde CF)
-            dataCK = foundCell.Offset(0, -15).Value ' Columna CK (-15 desde CF)
-            dataCQ = foundCell.Offset(0, -12).Value ' Columna CQ (-12 desde CF)
-            dataCR = foundCell.Offset(0, -1).Value ' Columna CR (-1 desde CF)
+            dataCN = foundCell.Offset(0, -3).Value ' Columna CN (CD, 82)
+            dataCK = foundCell.Offset(0, -6).Value ' Columna CK (CA, 79)
+            dataCQ = foundCell.Offset(0, 1).Value  ' Columna CQ (CH, 86)
+            dataCR = foundCell.Offset(0, 2).Value  ' Columna CR (CI, 87)
             
             ' Convertir fechas al formato 21-Nov-24
             If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy")
