@@ -1,0 +1,17 @@
+=IF(
+   ISBLANK(Students!L2),
+   COUNTIFS(
+      Students!K2:K, ">="&Count!K21, 
+      Students!K2:K, "<="&Count!L21, 
+      Students!H2:H, "*program", 
+      Students!C2:C, "*campus", 
+      Students!AD2:AD, "status"
+   ),
+   COUNTIFS(
+      Students!L2:L, ">="&Count!K21, 
+      Students!L2:L, "<="&Count!L21, 
+      Students!I2:I, "*program", 
+      Students!C2:C, "*campus", 
+      Students!AD2:AD, "campus"
+   )
+)
