@@ -1,0 +1,15 @@
+=COUNTIFS(
+   Students!L2:L, "<="&DATE(2024,12,31), 
+   Students!I2:I, "*English", 
+   Students!C2:C, "*National", 
+   Students!AD2:AD, "sts"
+) 
++ 
+COUNTIFS(
+   Students!L2:L, "", 
+   Students!K2:K, "<="&DATE(2024,12,31), 
+   Students!H2:H, "*English", 
+   Students!C2:C, "*National", 
+   Students!AD2:AD, "sts"
+)
+
