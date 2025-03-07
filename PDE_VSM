@@ -69,18 +69,18 @@ Sub CompareAndExtractData()
     outputRow = 2
     
     ' Determinar la última fila en el database
-    lastRowDatabase = wsDatabase.Cells(wsDatabase.Rows.Count, 85).End(xlUp).Row ' Columna CF (85)
+    lastRowDatabase = wsDatabase.Cells(wsDatabase.Rows.Count, 83).End(xlUp).Row ' Columna CH (83)
     
     ' Buscar los Change Issues en el database
     For Each changeIssue In dict.Keys
-        Set foundCell = wsDatabase.Range("CF2:CF" & lastRowDatabase).Find(What:=changeIssue, LookAt:=xlWhole)
+        Set foundCell = wsDatabase.Range("CH2:CH" & lastRowDatabase).Find(What:=changeIssue, LookAt:=xlWhole)
         
         If Not foundCell Is Nothing Then
-            ' Extraer los valores de las columnas CK, CN, CQ y CR
-            dataCN = foundCell.Offset(0, -3).Value ' Columna CN (CD, 82)
-            dataCK = foundCell.Offset(0, -6).Value ' Columna CK (CA, 79)
-            dataCQ = foundCell.Offset(0, 1).Value  ' Columna CQ (CH, 86)
-            dataCR = foundCell.Offset(0, 2).Value  ' Columna CR (CI, 87)
+            ' Extraer los valores de las columnas CN, CK, CQ y CR con los nuevos offsets
+            dataCN = foundCell.Offset(0, 6).Value  ' Columna CN (89)
+            dataCK = foundCell.Offset(0, 9).Value  ' Columna CK (92)
+            dataCQ = foundCell.Offset(0, 12).Value ' Columna CQ (95)
+            dataCR = foundCell.Offset(0, 13).Value ' Columna CR (96)
             
             ' Convertir fechas al formato 21-Nov-24
             If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy")
