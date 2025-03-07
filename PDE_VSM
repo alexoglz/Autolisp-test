@@ -1,0 +1,115 @@
+Sub CompareAndExtractData()
+    Dim wsAero As Worksheet, wsDatabase As Worksheet, wsOutput As Worksheet
+    Dim wbAero As Workbook, wbDatabase As Workbook
+    Dim fDialog As FileDialog
+    Dim fileAero As String, fileDatabase As String
+    Dim lastRowAero As Long, lastRowDatabase As Long, outputRow As Long
+    Dim dict As Object
+    Dim changeIssue As String
+    Dim foundCell As Range
+    Dim dataCN As String, dataCK As String, dataCQ As String, dataCR As String
+    Dim i As Long
+    
+    ' Abrir diálogo para seleccionar el archivo Aero 2025
+    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+    With fDialog
+        .Title = "Selecciona el archivo Aero 2025"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub
+        fileAero = .SelectedItems(1)
+    End With
+    
+    ' Abrir diálogo para seleccionar el archivo Database
+    With fDialog
+        .Title = "Selecciona el archivo Database"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub
+        fileDatabase = .SelectedItems(1)
+    End With
+    
+    ' Abrir ambos archivos
+    Set wbAero = Workbooks.Open(fileAero)
+    Set wbDatabase = Workbooks.Open(fileDatabase)
+    
+    ' Referenciar las hojas específicas
+    Set wsAero = wbAero.Sheets("Data for VSM")
+    Set wsDatabase = wbDatabase.Sheets("LM6000 Issue Tracker")
+    
+    ' Crear un diccionario para almacenar los Change Issues en orden
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    ' Determinar la última fila con datos en la columna A de Aero 2025
+    lastRowAero = wsAero.Cells(wsAero.Rows.Count, 1).End(xlUp).Row
+    
+    ' Extraer los Change Issues de la columna A y guardarlos en un diccionario
+    For i = 2 To lastRowAero ' Suponiendo que hay un encabezado en la fila 1
+        changeIssue = wsAero.Cells(i, 1).Value
+        If Not dict.exists(changeIssue) Then
+            dict.Add changeIssue, i
+        End If
+    Next i
+    
+    ' Crear o seleccionar la hoja de salida en el archivo del macro
+    On Error Resume Next
+    Set wsOutput = ThisWorkbook.Sheets("Data for VSM")
+    If wsOutput Is Nothing Then
+        Set wsOutput = ThisWorkbook.Sheets.Add
+        wsOutput.Name = "Data for VSM"
+    End If
+    On Error GoTo 0
+    
+    ' Limpiar la hoja de salida
+    wsOutput.Cells.Clear
+    wsOutput.Cells(1, 1).Value = "Change Issue"
+    wsOutput.Cells(1, 2).Value = "CN"
+    wsOutput.Cells(1, 3).Value = "CK"
+    wsOutput.Cells(1, 4).Value = "CQ"
+    wsOutput.Cells(1, 5).Value = "CR"
+    
+    outputRow = 2
+    
+    ' Determinar la última fila en el database
+    lastRowDatabase = wsDatabase.Cells(wsDatabase.Rows.Count, 85).End(xlUp).Row ' Columna CF (85)
+    
+    ' Buscar los Change Issues en el database
+    For Each changeIssue In dict.Keys
+        Set foundCell = wsDatabase.Range("CF2:CF" & lastRowDatabase).Find(What:=changeIssue, LookAt:=xlWhole)
+        
+        If Not foundCell Is Nothing Then
+            ' Extraer los valores de las columnas CK, CN, CQ y CR
+            dataCN = foundCell.Offset(0, -2).Value ' Columna CN (-2 desde CF)
+            dataCK = foundCell.Offset(0, -15).Value ' Columna CK (-15 desde CF)
+            dataCQ = foundCell.Offset(0, -12).Value ' Columna CQ (-12 desde CF)
+            dataCR = foundCell.Offset(0, -1).Value ' Columna CR (-1 desde CF)
+            
+            ' Convertir fechas al formato 21-Nov-24
+            If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy")
+            If IsDate(dataCK) Then dataCK = Format(dataCK, "dd-mmm-yy")
+            If IsDate(dataCQ) Then dataCQ = Format(dataCQ, "dd-mmm-yy")
+            
+            ' Guardar en la hoja de salida
+            wsOutput.Cells(outputRow, 1).Value = changeIssue
+            wsOutput.Cells(outputRow, 2).Value = dataCN
+            wsOutput.Cells(outputRow, 3).Value = dataCK
+            wsOutput.Cells(outputRow, 4).Value = dataCQ
+            wsOutput.Cells(outputRow, 5).Value = dataCR
+            
+            outputRow = outputRow + 1
+        End If
+    Next changeIssue
+    
+    ' Cerrar los archivos sin guardar
+    wbAero.Close False
+    wbDatabase.Close False
+    
+    ' Notificación de finalización
+    MsgBox "Proceso completado. Datos extraídos en la hoja 'Data for VSM'.", vbInformation, "Completado"
+    
+    ' Liberar memoria
+    Set wbAero = Nothing
+    Set wbDatabase = Nothing
+    Set wsAero = Nothing
+    Set wsDatabase = Nothing
+    Set wsOutput = Nothing
+    Set dict = Nothing
+End Sub
