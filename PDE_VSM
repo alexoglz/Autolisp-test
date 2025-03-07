@@ -5,7 +5,7 @@ Sub CompareAndExtractData()
     Dim fileAero As String, fileDatabase As String
     Dim lastRowAero As Long, lastRowDatabase As Long, outputRow As Long
     Dim dict As Object
-    Dim changeIssue As Variant  ' Cambiado a Variant para evitar el error en For Each
+    Dim changeIssue As Variant
     Dim foundCell As Range
     Dim dataCN As String, dataCK As String, dataCQ As String, dataCR As String
     Dim i As Long
@@ -98,12 +98,12 @@ Sub CompareAndExtractData()
         End If
     Next changeIssue
     
-    ' Cerrar los archivos sin guardar
-    wbAero.Close False
-    wbDatabase.Close False
+    ' Guardar los archivos sin cerrarlos
+    wbAero.Save
+    wbDatabase.Save
     
     ' Notificación de finalización
-    MsgBox "Proceso completado. Datos extraídos en la hoja 'Data for VSM'.", vbInformation, "Completado"
+    MsgBox "Proceso completado. Datos extraídos en la hoja 'Data for VSM'. Archivos guardados.", vbInformation, "Completado"
     
     ' Liberar memoria
     Set wbAero = Nothing
