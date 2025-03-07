@@ -83,19 +83,27 @@ Sub CompareAndExtractData()
             dataCR = foundCell.Offset(0, 12).Value ' CR (96) → Número
             
             ' Convertir fechas al formato 21-Nov-24
-            If IsDate(dataCK) Then dataCK = Format(dataCK, "dd-mmm-yy")
-            If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy")
-            If IsDate(dataCQ) Then dataCQ = Format(dataCQ, "dd-mmm-yy")
+            If IsDate(dataCK) Then dataCK = Format(dataCK, "dd-mmm-yy") Else dataCK = ""
+            If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy") Else dataCN = ""
+            If IsDate(dataCQ) Then dataCQ = Format(dataCQ, "dd-mmm-yy") Else dataCQ = ""
+            If Trim(dataCR) = "" Then dataCR = ""
             
-            ' Guardar en la hoja de salida
-            wsOutput.Cells(outputRow, 1).Value = changeIssue
-            wsOutput.Cells(outputRow, 2).Value = dataCK
-            wsOutput.Cells(outputRow, 3).Value = dataCN
-            wsOutput.Cells(outputRow, 4).Value = dataCQ
-            wsOutput.Cells(outputRow, 5).Value = dataCR
-            
-            outputRow = outputRow + 1
+        Else
+            ' Si no se encuentra, dejar las celdas en blanco
+            dataCK = ""
+            dataCN = ""
+            dataCQ = ""
+            dataCR = ""
         End If
+        
+        ' Guardar en la hoja de salida
+        wsOutput.Cells(outputRow, 1).Value = changeIssue
+        wsOutput.Cells(outputRow, 2).Value = dataCK
+        wsOutput.Cells(outputRow, 3).Value = dataCN
+        wsOutput.Cells(outputRow, 4).Value = dataCQ
+        wsOutput.Cells(outputRow, 5).Value = dataCR
+        
+        outputRow = outputRow + 1
     Next changeIssue
     
     ' Guardar los archivos sin cerrarlos
