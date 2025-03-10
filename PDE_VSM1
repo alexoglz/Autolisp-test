@@ -1,0 +1,137 @@
+Sub CompareAndExtractData()
+    Dim wsAero As Worksheet, wsDatabase1 As Worksheet, wsDatabase2 As Worksheet, wsOutput As Worksheet
+    Dim wbAero As Workbook, wbDatabase1 As Workbook, wbDatabase2 As Workbook
+    Dim fDialog As FileDialog
+    Dim fileAero As String, fileDatabase1 As String, fileDatabase2 As String
+    Dim lastRowAero As Long, lastRowDatabase1 As Long, lastRowDatabase2 As Long, outputRow As Long
+    Dim dict As Object
+    Dim changeIssue As Variant
+    Dim foundCell As Range
+    Dim dataCK As String, dataCN As String, dataCQ As String, dataCR As String
+    Dim i As Long
+    
+    ' Prompt user to select the Aero 2025 file
+    Set fDialog = Application.FileDialog(msoFileDialogFilePicker)
+    With fDialog
+        .Title = "Select the Aero 2025 file"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub
+        fileAero = .SelectedItems(1)
+    End With
+    
+    ' Prompt user to select the LM6000 Issue Tracker file
+    With fDialog
+        .Title = "Select the LM6000 Issue Tracker file"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub
+        fileDatabase1 = .SelectedItems(1)
+    End With
+    
+    ' Prompt user to select the LM2500XPRESS Issue Tracker file
+    With fDialog
+        .Title = "Select the LM2500XPRESS Issue Tracker file"
+        .AllowMultiSelect = False
+        If .Show <> -1 Then Exit Sub
+        fileDatabase2 = .SelectedItems(1)
+    End With
+    
+    ' Open selected files
+    Set wbAero = Workbooks.Open(fileAero)
+    Set wbDatabase1 = Workbooks.Open(fileDatabase1)
+    Set wbDatabase2 = Workbooks.Open(fileDatabase2)
+    
+    ' Set references to sheets
+    Set wsAero = wbAero.Sheets("Data for VSM")
+    Set wsDatabase1 = wbDatabase1.Sheets("LM6000 Issue Tracker")
+    Set wsDatabase2 = wbDatabase2.Sheets("LM2500XPRESS Issue Tracker")
+    
+    ' Create dictionary to store Change Issues from Aero 2025
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    lastRowAero = wsAero.Cells(wsAero.Rows.Count, 1).End(xlUp).Row
+    
+    ' Store Change Issues from Aero 2025 in dictionary
+    For i = 2 To lastRowAero
+        changeIssue = wsAero.Cells(i, 1).Value
+        If Not dict.exists(changeIssue) Then
+            dict.Add changeIssue, i
+        End If
+    Next i
+    
+    ' Set up output sheet
+    On Error Resume Next
+    Set wsOutput = ThisWorkbook.Sheets("Data for VSM")
+    If wsOutput Is Nothing Then
+        Set wsOutput = ThisWorkbook.Sheets.Add
+        wsOutput.Name = "Data for VSM"
+    End If
+    On Error GoTo 0
+    
+    wsOutput.Cells.Clear
+    wsOutput.Cells(1, 1).Value = "Change Issue"
+    wsOutput.Cells(1, 2).Value = "CK"
+    wsOutput.Cells(1, 3).Value = "CN"
+    wsOutput.Cells(1, 4).Value = "CQ"
+    wsOutput.Cells(1, 5).Value = "CR"
+    
+    outputRow = 2
+    
+    lastRowDatabase1 = wsDatabase1.Cells(wsDatabase1.Rows.Count, 84).End(xlUp).Row
+    lastRowDatabase2 = wsDatabase2.Cells(wsDatabase2.Rows.Count, 90).End(xlUp).Row
+    
+    ' Process Change Issues
+    For Each changeIssue In dict.Keys
+        dataCK = "": dataCN = "": dataCQ = "": dataCR = ""
+        
+        ' Search in LM6000 Issue Tracker (Column CF = 84)
+        Set foundCell = wsDatabase1.Range("CF2:CF" & lastRowDatabase1).Find(What:=changeIssue, LookAt:=xlWhole)
+        If Not foundCell Is Nothing Then
+            dataCK = foundCell.Offset(0, 5).Value  ' Column 89
+            dataCN = foundCell.Offset(0, 8).Value  ' Column 92
+            dataCQ = foundCell.Offset(0, 11).Value ' Column 95
+            dataCR = foundCell.Offset(0, 12).Value ' Column 96
+        Else
+            ' Search in LM2500XPRESS Issue Tracker (Column 90)
+            Set foundCell = wsDatabase2.Range("CL2:CL" & lastRowDatabase2).Find(What:=changeIssue, LookAt:=xlWhole)
+            If Not foundCell Is Nothing Then
+                dataCK = foundCell.Offset(0, 5).Value  ' Column 95
+                dataCN = foundCell.Offset(0, 8).Value  ' Column 98
+                dataCQ = foundCell.Offset(0, 11).Value ' Column 101
+                dataCR = foundCell.Offset(0, 12).Value ' Column 102
+            End If
+        End If
+        
+        ' Format dates
+        If IsDate(dataCK) Then dataCK = Format(dataCK, "dd-mmm-yy") Else dataCK = ""
+        If IsDate(dataCN) Then dataCN = Format(dataCN, "dd-mmm-yy") Else dataCN = ""
+        If IsDate(dataCQ) Then dataCQ = Format(dataCQ, "dd-mmm-yy") Else dataCQ = ""
+        If Trim(dataCR) = "" Then dataCR = ""
+        
+        ' Write to output sheet
+        wsOutput.Cells(outputRow, 1).Value = changeIssue
+        wsOutput.Cells(outputRow, 2).Value = dataCK
+        wsOutput.Cells(outputRow, 3).Value = dataCN
+        wsOutput.Cells(outputRow, 4).Value = dataCQ
+        wsOutput.Cells(outputRow, 5).Value = dataCR
+        
+        outputRow = outputRow + 1
+    Next changeIssue
+    
+    ' Save workbooks
+    wbAero.Save
+    wbDatabase1.Save
+    wbDatabase2.Save
+    
+    ' Confirmation message
+    MsgBox "Process completed successfully. Data extracted into the 'Data for VSM' sheet. Files have been saved.", vbInformation, "Completed"
+    
+    ' Release memory
+    Set wbAero = Nothing
+    Set wbDatabase1 = Nothing
+    Set wbDatabase2 = Nothing
+    Set wsAero = Nothing
+    Set wsDatabase1 = Nothing
+    Set wsDatabase2 = Nothing
+    Set wsOutput = Nothing
+    Set dict = Nothing
+End Sub
