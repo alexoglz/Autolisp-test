@@ -90,8 +90,10 @@ Sub CompareAndExtractData()
             dataCN = foundCell.Offset(0, 8).Value  ' Column 92
             dataCQ = foundCell.Offset(0, 11).Value ' Column 95
             dataCR = foundCell.Offset(0, 12).Value ' Column 96
-        Else
-            ' Search in LM2500XPRESS Issue Tracker (Column 90)
+        End If
+        
+        ' Only search in LM2500XPRESS if not found in LM6000
+        If foundCell Is Nothing Then
             Set foundCell = wsDatabase2.Range("CL2:CL" & lastRowDatabase2).Find(What:=changeIssue, LookAt:=xlWhole)
             If Not foundCell Is Nothing Then
                 dataCK = foundCell.Offset(0, 5).Value  ' Column 95
