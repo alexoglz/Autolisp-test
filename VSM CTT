@@ -1,1 +1,1 @@
-=IFERROR(AVERAGEIFS($P:$P, $E:$E, ">="&Z4, $E:$E, "<"&EDATE(Z4,1), $B:$B, "H"), "")
+=IFERROR(ROUND(AVERAGEIFS($P:$P, $E:$E, ">="&Z4, $E:$E, "<"&EDATE(Z4,1), $B:$B, "H"), 2), "")
